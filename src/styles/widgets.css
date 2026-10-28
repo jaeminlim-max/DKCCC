@@ -1,0 +1,357 @@
+/* ── 타이머 ─────────────────────────────────────────── */
+.timer {
+  padding: 20px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.timer-label {
+  margin-bottom: 8px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.timer-face {
+  position: relative;
+  width: min(220px, 64vw);
+  margin: 0 auto 16px;
+  aspect-ratio: 1;
+}
+
+.timer-face svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.timer-track {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 8;
+}
+
+.timer-progress {
+  fill: none;
+  stroke: var(--hl);
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.2s linear;
+}
+
+.timer-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-time {
+  font-size: 3.2rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.timer-caption {
+  min-height: 1.5em;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.timer.is-done .timer-time {
+  color: var(--hl);
+}
+
+/* ── 그리기 ─────────────────────────────────────────── */
+.draw-paper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 18px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.draw-paper canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.draw-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  color: var(--muted);
+  font-size: 1rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+.tool-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tool-row .btn {
+  min-height: 52px;
+  padding: 0 6px;
+  font-size: 0.95rem;
+}
+
+.tool-row .btn[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.ref-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ref-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ref-list b {
+  display: block;
+}
+
+.ref-list small {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.ref-list cite {
+  flex: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-style: normal;
+  font-weight: 600;
+}
+
+details.more {
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 0 16px;
+}
+
+details.more summary {
+  display: flex;
+  align-items: center;
+  min-height: 52px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+details.more[open] {
+  padding-bottom: 8px;
+}
+
+/* ── 세그먼트 (과제 ①/②) ────────────────────────────── */
+.segment {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.segment button {
+  min-height: 52px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segment [aria-selected='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ── 단계 안내 (한 문장씩 넘기기) ────────────────────── */
+.slides {
+  padding: 28px 22px 20px;
+  border-radius: 20px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.slide-text {
+  min-height: 7.5em;
+  font-size: 1.4rem;
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: -0.01em;
+}
+
+.slide-text.is-entering {
+  animation: slide-in 0.35s ease both;
+}
+
+@keyframes slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.slide-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0 16px;
+}
+
+.slide-dots i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+}
+
+.slide-dots i.on {
+  background: var(--hl);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slide-text.is-entering {
+    animation: fade 0.2s ease both;
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.read-check {
+  padding: 8px 16px;
+  border-radius: 14px;
+  background: var(--surface);
+  font-size: 1.1rem;
+}
+
+.avoid {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.avoid li + li {
+  margin-top: 10px;
+}
+
+.strong {
+  font-weight: 700;
+}
+
+.keep {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--hl-soft);
+  font-weight: 700;
+}
+
+.box {
+  margin-top: 20px;
+  padding: 18px 18px 20px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.box h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.box-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--hl);
+  color: var(--navy);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.hint-line {
+  margin: 4px 0 14px;
+  color: var(--muted);
+  font-size: 1rem;
+}
+
+.box .import {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.box .names {
+  margin-top: 4px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+}
+
+.chips .note {
+  width: 100%;
+}
+
+.chip {
+  min-height: 48px;
+  padding: 0 16px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+#fill {
+  width: 100%;
+  margin-top: 10px;
+}

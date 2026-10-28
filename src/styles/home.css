@@ -1,0 +1,125 @@
+.brand {
+  padding-left: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.day-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.day-tabs button {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  min-height: 56px;
+  border: 0;
+  border-radius: 13px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.day-tabs strong {
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.day-tabs span {
+  font-size: 0.95rem;
+}
+
+.day-tabs [aria-selected='true'] {
+  background: var(--accent);
+  color: #fff;
+}
+
+.activity-list {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+}
+
+.act {
+  display: grid;
+  grid-template-columns: 3.4rem 1fr auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 84px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--line);
+  color: var(--ink);
+  text-decoration: none;
+}
+
+a.act:active {
+  background: var(--hl-soft);
+}
+
+.act-time {
+  align-self: start;
+  padding-top: 3px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.act-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.act-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.act-where {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.act-go {
+  width: 24px;
+  height: 24px;
+  color: var(--accent-text);
+}
+
+.act.is-soon .act-title {
+  color: var(--muted);
+}
+
+.soon {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--hl-soft);
+  font-size: 0.85rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.home-foot {
+  margin-top: 40px;
+  font-size: 0.95rem;
+}
+
+.home-foot a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 48px;
+  color: var(--muted);
+}
