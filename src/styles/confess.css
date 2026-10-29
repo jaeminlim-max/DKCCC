@@ -1,0 +1,439 @@
+/* 죄 목록 */
+
+.notice {
+  padding: 20px;
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.notice-main {
+  margin-bottom: 10px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.paper-option {
+  margin-top: 20px;
+}
+
+.paper-option span {
+  display: flex;
+  flex-direction: column;
+}
+
+.paper-option small {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+/* 단계 머리 */
+.step-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 0 18px;
+}
+
+.step-mark {
+  flex: none;
+  color: var(--hl);
+  font-size: 2rem;
+  line-height: 1.1;
+}
+
+.step-text {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+/* ❶ 기도 */
+.pray {
+  position: relative;
+  z-index: 31;
+  padding: 40px 0;
+  text-align: center;
+}
+
+.pray-count {
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--hl);
+  font-variant-numeric: tabular-nums;
+}
+
+.pray .note {
+  margin-top: 16px;
+}
+
+.dim-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: #05080f;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.is-dimming .dim-layer {
+  animation: dim-breath 30s ease-in-out forwards;
+}
+
+@keyframes dim-breath {
+  0% {
+    opacity: 0;
+  }
+  30%,
+  70% {
+    opacity: 0.86;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 종이 */
+.paper {
+  --paper-bg: #fbf7ec;
+  --paper-ink: #1d2433;
+  --paper-rule: rgba(47, 91, 211, 0.16);
+  --verse-ink: #2f5bd3;
+  --finger-edge: #fbf7ec;
+  position: relative;
+  min-height: max(340px, 52dvh);
+  border-radius: 6px;
+  background-color: var(--paper-bg);
+  background-image: radial-gradient(circle at 18% 22%, rgba(120, 90, 40, 0.06), transparent 40%),
+    radial-gradient(circle at 82% 70%, rgba(120, 90, 40, 0.05), transparent 45%),
+    repeating-linear-gradient(to bottom, transparent 0 35px, var(--paper-rule) 35px 36px);
+  background-position: 0 0, 0 0, 0 14px;
+  color: var(--paper-ink);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08), 0 14px 30px -16px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.paper.is-dark {
+  --paper-bg: #20242d;
+  --paper-ink: #8d95a5;
+  --paper-rule: rgba(255, 255, 255, 0.05);
+  --verse-ink: #f28c38;
+  --finger-edge: #20242d;
+  background-image: repeating-linear-gradient(to bottom, transparent 0 35px, var(--paper-rule) 35px 36px);
+}
+
+.paper textarea,
+.paper .written {
+  display: block;
+  width: 100%;
+  min-height: max(340px, 52dvh);
+  margin: 0;
+  padding: 14px 18px 18px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--paper-ink);
+  font: inherit;
+  font-size: 18px;
+  line-height: 36px;
+  white-space: pre-wrap;
+  resize: none;
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.paper textarea:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.paper .written {
+  user-select: none;
+  -webkit-user-select: none;
+  transition: filter 1s ease, opacity 1s ease;
+}
+
+.paper .written.is-fading {
+  filter: blur(7px);
+  opacity: 0.32;
+}
+
+.paper.is-shaken {
+  animation: shake 0.26s ease;
+}
+
+@keyframes shake {
+  25% {
+    transform: translateX(-3px) rotate(-0.4deg);
+  }
+  75% {
+    transform: translateX(3px) rotate(0.4deg);
+  }
+}
+
+.paper.is-gone {
+  visibility: hidden;
+}
+
+/* ❸ 대각선 구절 */
+.verse-cover {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.verse-cover-inner {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15em;
+  color: var(--verse-ink);
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.vline,
+.vref {
+  display: block;
+  clip-path: inset(0 100% 0 0);
+  animation: write-in 0.5s ease-out forwards;
+}
+
+.vref {
+  margin-top: 0.3em;
+  font-size: 0.62em;
+  font-weight: 700;
+}
+
+@keyframes write-in {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.verse-cover.is-reduced .vline,
+.verse-cover.is-reduced .vref {
+  clip-path: none;
+  animation: fade 0.3s ease both;
+  animation-delay: 0s !important;
+}
+
+/* ❹ 터치 유도 */
+.tear-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  animation: fade 0.4s ease both;
+}
+
+.tear-hint .finger {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  color: var(--paper-ink);
+  animation: tap 1.2s ease-in-out infinite;
+}
+
+.tear-hint .ripple {
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  margin-left: -21px;
+  border: 3px solid var(--verse-ink);
+  border-radius: 50%;
+  opacity: 0;
+  animation: ripple 1.2s ease-out infinite;
+}
+
+.tear-hint-text {
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--paper-ink);
+  color: var(--paper-bg);
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@keyframes tap {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+  }
+  40% {
+    transform: translateY(6px) scale(0.94);
+  }
+}
+
+@keyframes ripple {
+  0%,
+  35% {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  45% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.2);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tear-hint .finger,
+  .tear-hint .ripple {
+    animation: none;
+  }
+  .tear-hint .ripple {
+    opacity: 0.6;
+  }
+  .paper.is-shaken {
+    animation: none;
+  }
+  .paper .written {
+    transition-duration: 0.3s;
+  }
+}
+
+/* 찢김선 */
+.crack {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.crack polyline {
+  fill: none;
+  stroke: var(--paper-ink);
+  stroke-width: 2.5;
+  stroke-linejoin: bevel;
+  vector-effect: non-scaling-stroke;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: crack 0.25s ease-out forwards;
+}
+
+@keyframes crack {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 찢긴 조각 */
+.tear-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  overflow: hidden;
+}
+
+.piece {
+  position: fixed;
+  will-change: transform;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.25));
+}
+
+.piece > .paper {
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* 끝 화면 */
+.end {
+  padding: 28px 0 20px;
+}
+
+.end-thanks {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.45;
+  letter-spacing: -0.02em;
+}
+
+.train {
+  margin: 0;
+}
+
+.train svg {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+}
+
+.train .rail {
+  stroke: var(--line);
+  stroke-width: 3;
+}
+
+.train .car rect,
+.train .car path {
+  fill: var(--surface);
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.train .car.engine path,
+.train .car.engine rect {
+  fill: var(--accent);
+  stroke: var(--accent);
+}
+
+.train .car circle {
+  fill: var(--ink);
+}
+
+.train .link {
+  stroke: var(--ink);
+  stroke-width: 3;
+}
+
+.train text {
+  fill: var(--ink);
+  font-size: 17px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.train .engine text {
+  fill: #fff;
+}
+
+.train figcaption {
+  margin-top: 8px;
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+.verse-cover.is-done .vline,
+.verse-cover.is-done .vref {
+  clip-path: none;
+  animation: none;
+}

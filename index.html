@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>LTC 초급 활동</title>
+    <meta name="description" content="CCC LTC 초급 활동지">
+    <meta name="theme-color" content="#111A2E">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+    <script src="./theme-init.js"></script>
+  </head>
+  <body class="home">
+    <header class="topbar">
+      <span class="brand">DK CCC</span>
+      <button type="button" data-theme-toggle></button>
+    </header>
+    <main>
+      <div class="page-head">
+        <h1>LTC 초급 활동</h1>
+        <p class="where">동서대 · 경남정보대 · 18:20–20:30</p>
+      </div>
+      <div class="day-tabs" role="tablist" aria-label="요일">
+        <button type="button" role="tab" id="tab-mon" aria-controls="panel-mon" data-day="mon">
+          <strong>월</strong><span>11월 2일</span>
+        </button>
+        <button type="button" role="tab" id="tab-tue" aria-controls="panel-tue" data-day="tue">
+          <strong>화</strong><span>11월 3일</span>
+        </button>
+      </div>
+      <section id="panel-mon" role="tabpanel" aria-labelledby="tab-mon"><ol class="activity-list"></ol></section>
+      <section id="panel-tue" role="tabpanel" aria-labelledby="tab-tue"><ol class="activity-list"></ol></section>
+      <p class="home-foot"><a href="./qr/">간사용 · QR 모음</a></p>
+    </main>
+    <script type="module" src="/src/pages/home.ts"></script>
+  </body>
+</html>
