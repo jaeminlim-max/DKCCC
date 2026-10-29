@@ -136,39 +136,35 @@
 /* 두 원 도식 */
 .circles-figure {
   margin: 14px 0 0;
-  padding: 12px 8px 10px;
+  padding: 16px 12px 14px;
   border-radius: 16px;
   background: var(--surface);
   box-shadow: var(--shadow);
 }
 
-.circles-figure svg {
+.circles-figure > svg {
   display: block;
   width: 100%;
-  max-width: 320px;
+  max-width: 460px;
   height: auto;
   margin: 0 auto;
-}
-
-.circles-figure figcaption {
-  margin-top: 6px;
-  text-align: center;
 }
 
 .cf-ring {
   fill: none;
   stroke: var(--ink);
-  stroke-width: 2.5;
+  stroke-width: 3.5;
 }
 
 .cf-dot {
-  fill: var(--muted);
+  fill: var(--ink);
+  opacity: 0.55;
 }
 
 .cf-chair {
   fill: none;
   stroke: var(--ink);
-  stroke-width: 3;
+  stroke-width: 4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -182,18 +178,50 @@
 .cf-cross path {
   fill: none;
   stroke: var(--hl);
-  stroke-width: 4;
+  stroke-width: 5;
   stroke-linecap: round;
-}
-
-.cf-cross-key {
-  color: var(--hl);
-  font-weight: 800;
 }
 
 .cf-side {
   fill: var(--accent-text);
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 800;
   text-anchor: middle;
+}
+
+/* 그림 설명: 한 줄에 하나, 두 칸 */
+.cf-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  margin: 14px 0 0;
+  padding: 12px 4px 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.cf-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.cf-legend svg {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+
+.cf-legend .cf-ring {
+  stroke-width: 2.2;
+}
+
+.cf-legend .cf-chair {
+  stroke-width: 2.6;
+}
+
+.cf-legend .cf-cross path {
+  stroke-width: 3;
 }
