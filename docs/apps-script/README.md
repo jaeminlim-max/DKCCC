@@ -20,7 +20,7 @@
 ## 4. 사이트에 주소 연결
 저장소 **Settings → Secrets and variables → Actions → Variables → New repository variable**
 - 이름 `GAS_URL`, 값: 위 웹 앱 URL → 저장 → **Actions → Deploy to GitHub Pages → Run workflow**.
-(또는 URL을 Claude에게 알려 주면 연결해 드립니다.)
+(현재는 `.github/workflows/deploy.yml`에 웹 앱 URL이 기본값으로 들어 있습니다. 새로 배포해서 URL이 바뀌면 그 줄을 고치거나 위 변수를 만드세요.)
 
 ## 코드를 고친 뒤에는
 **배포 → 배포 관리 → ✏ → 버전: 새 버전 → 배포**. 그래야 같은 URL에 반영됩니다.
