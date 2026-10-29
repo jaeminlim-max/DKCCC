@@ -123,7 +123,7 @@ export const PLEDGE = {
 /* ── /response-chart 반응대처법 도표 ───────────────────── */
 // 원문: LTC초급IG p066-099.md, PDF p.99 「전도시 여러 가지 반응대처법 도표」(학생용 교재 70p).
 // 스캔본을 옮긴 원고라 원본 PDF와 대조 필요. 문장은 원고 그대로.
-// 참고: Q2 '왼쪽' 문장이 도표는 "예수님을 알고 싶을 때", 본문(PDF p.96)과 진행안은 "예수님을 믿고 싶을 때".
+// Q2 '왼쪽' 문장: 도표는 "예수님을 알고 싶을 때"이나 본문(PDF p.96)·진행안의 "믿고 싶을 때"를 따름 (간사님 결정 2026-10-29).
 // figure: 'circles' = 사영리 9쪽 두 원 그림을 함께 보여 준다 (책자 그림이 아니라 도표 설명을 바탕으로 새로 그린 도식).
 export type ChartStep = { kind: 'ask' | 'say' | 'do'; text: string; page?: string; figure?: 'circles' };
 export interface ChartNode {
@@ -170,7 +170,7 @@ export const CHART = {
       ],
     },
     'q2-left': {
-      steps: [{ kind: 'say', text: '그렇습니까? 언젠가 예수님을 알고 싶을 때 어떻게 그리스도를 영접하는지 알려드리겠습니다.' }],
+      steps: [{ kind: 'say', text: '그렇습니까? 언젠가 예수님을 믿고 싶을 때 어떻게 그리스도를 영접하는지 알려드리겠습니다.' }],
       answers: [{ label: '세 번째 질문으로', next: 'q3' }],
     },
     q3: {
