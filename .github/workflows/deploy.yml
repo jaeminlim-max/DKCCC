@@ -29,8 +29,9 @@ jobs:
         env:
           SITE_BASE: /DKCCC/
           SITE_URL: https://jaeminlim-max.github.io/DKCCC/
-          # 간증문 서버(Apps Script 웹 앱) 주소. 저장소 Settings → Secrets and variables → Actions → Variables의 GAS_URL.
-          VITE_GAS_URL: ${{ vars.GAS_URL }}
+          # 간증문 서버(Apps Script 웹 앱) 주소. 공개 주소이므로 여기에 둔다 (암호는 Apps Script 스크립트 속성에만 있음).
+          # 저장소 변수 GAS_URL이 있으면 그것을 먼저 쓴다.
+          VITE_GAS_URL: ${{ vars.GAS_URL || 'https://script.google.com/macros/s/AKfycbxvOX16ZsrhVV_Mn_qfIWk05mR5cyD527L5jFXZj_dkhAkjfMn7GZnVd2_Mm8F5dSPa-Q/exec' }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
