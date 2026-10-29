@@ -1,5 +1,6 @@
 import { defineConfig, type Plugin } from 'vite';
-import { resolve } from 'node:path';
+import { join, relative, resolve } from 'node:path';
+import { readdirSync, statSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
 // 배포 경로. GitHub Pages 프로젝트 사이트면 '/저장소이름/'.
@@ -47,9 +48,13 @@ function serviceWorker(): Plugin {
   return {
     name: 'ltc-sw',
     apply: 'build',
-    generateBundle(_opts, bundle) {
-      const files = Object.keys(bundle).filter((f) => !f.endsWith('.woff2') && !f.endsWith('.map'));
-      const urls = ['./', ...files.map((f) => './' + f.replace(/index\.html$/, ''))];
+    // 빌드가 끝난 뒤 결과 폴더 전체(HTML·public 포함)를 훑어서 목록을 만든다.
+    writeBundle(opts) {
+      const outDir = opts.dir!;
+      const walk = (d: string): string[] =>
+        readdirSync(d).flatMap((n) => (statSync(join(d, n)).isDirectory() ? walk(join(d, n)) : [relative(outDir, join(d, n))]));
+      const files = walk(outDir).filter((f) => !f.endsWith('.woff2') && !f.endsWith('.map') && f !== 'sw.js');
+      const urls = files.map((f) => './' + f.replace(/(^|\/)index\.html$/, '$1'));
       const version = createHash('sha256').update(files.sort().join('|')).digest('hex').slice(0, 12);
       const source = `// 생성 파일 — vite.config.ts에서 만든다.
 const VERSION = '${version}';
@@ -78,18 +83,18 @@ self.addEventListener('fetch', (e) => {
   if (url.pathname.endsWith('.woff2')) {
     e.respondWith(
       caches.open(FONTS).then((c) =>
-        c.match(req).then((hit) => hit || fetch(req).then((res) => { if (res.ok) c.put(req, res.clone()); return res; })),
+        c.match(req, { ignoreVary: true }).then((hit) => hit || fetch(req).then((res) => { if (res.ok) c.put(req, res.clone()); return res; })),
       ),
     );
     return;
   }
 
   e.respondWith(
-    caches.match(req, { ignoreSearch: true }).then((hit) => hit || fetch(req)),
+    caches.match(req, { ignoreSearch: true, ignoreVary: true }).then((hit) => hit || fetch(req)),
   );
 });
 `;
-      this.emitFile({ type: 'asset', fileName: 'sw.js', source });
+      writeFileSync(join(outDir, 'sw.js'), source);
     },
   };
 }

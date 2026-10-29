@@ -188,23 +188,26 @@ function renderCover(card: HTMLElement, ta: HTMLTextAreaElement): void {
   }, reduced ? 250 : 1000);
 }
 
-/** 구절 묶음을 카드의 대각선(왼쪽 아래 → 오른쪽 위)에 맞춰 돌리고 크기를 정한다. */
+/** 구절 묶음을 카드의 대각선(왼쪽 아래 → 오른쪽 위)으로 돌리고, 돌린 모양 전체가 카드 안에 들어가게 크기를 정한다. */
 function fitDiagonal(card: HTMLElement, inner: HTMLElement): void {
   const w = card.clientWidth;
   const hgt = card.clientHeight;
-  const angle = -Math.atan2(hgt, w) * (180 / Math.PI);
-  const diag = Math.hypot(w, hgt);
-  // 가장 긴 줄이 대각선의 72% 안에 들어가게
+  const rad = Math.atan2(hgt, w);
   inner.style.fontSize = '20px';
   inner.style.width = 'max-content';
-  const natural = inner.getBoundingClientRect().width || 1;
-  const size = Math.max(16, Math.min(34, (20 * diag * 0.72) / natural));
-  inner.style.fontSize = `${size}px`;
-  inner.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
+  const L = inner.offsetWidth || 1; // 가장 긴 줄의 길이
+  const T = inner.offsetHeight || 1; // 묶음의 두께
+  const boxW = L * Math.cos(rad) + T * Math.sin(rad);
+  const boxH = L * Math.sin(rad) + T * Math.cos(rad);
+  const scale = Math.min((w * 0.88) / boxW, (hgt * 0.72) / boxH);
+  inner.style.fontSize = `${Math.max(14, Math.min(34, 20 * scale))}px`;
+  inner.style.transform = `translate(-50%, -50%) rotate(${-rad * (180 / Math.PI)}deg)`;
 }
 
 /* ── ❹ 터치해서 찢기 ──────────────────────────────── */
 function renderTear(card: HTMLElement): void {
+  // 구절을 다 나타난 상태로 고정한다 (찢긴 조각으로 복사될 때 애니메이션이 다시 돌지 않도록)
+  card.querySelector('.verse-cover')?.classList.add('is-done');
   app.replaceChildren(stepHead('❹', CONFESS.step4), card);
 
   const hint = h(

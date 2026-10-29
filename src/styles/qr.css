@@ -80,3 +80,7 @@
     max-width: none;
   }
 }
+
+.qr-actions .btn {
+  width: 100%;
+}

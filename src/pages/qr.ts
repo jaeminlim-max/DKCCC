@@ -50,7 +50,7 @@ app.innerHTML = `
     <p class="where">간사용 · 인쇄하거나 슬라이드에 넣으세요</p>
   </div>
   <p class="note no-print" id="site"></p>
-  <div class="btn-row no-print section">
+  <div class="stack no-print section qr-actions">
     <button type="button" class="btn btn-primary" id="zip">PNG 모두 내려받기 (ZIP)</button>
     <button type="button" class="btn" id="print">인쇄</button>
   </div>

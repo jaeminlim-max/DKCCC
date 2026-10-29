@@ -191,7 +191,7 @@
 .verse-cover-inner {
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: 44%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -233,7 +233,7 @@
 .tear-hint {
   position: absolute;
   left: 50%;
-  bottom: 18%;
+  bottom: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -430,4 +430,10 @@
   from {
     opacity: 0;
   }
+}
+
+.verse-cover.is-done .vline,
+.verse-cover.is-done .vref {
+  clip-path: none;
+  animation: none;
 }
