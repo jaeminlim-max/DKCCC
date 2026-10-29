@@ -3,6 +3,7 @@ import { initPage } from '../lib/page';
 import { $, h, prefersReducedMotion } from '../lib/dom';
 import { CHART, type ChartNode, type ChartStep } from '../content';
 import '../styles/chart.css';
+import { circlesFigure } from '../lib/circles-figure';
 
 initPage();
 
@@ -31,7 +32,9 @@ app.innerHTML = `
 
 function stepEl(s: ChartStep): HTMLElement {
   const head = h('span', { class: 'step-kind', text: KIND_LABEL[s.kind] + (s.page ? ` · ${s.page}` : '') });
-  return h('div', { class: `cstep is-${s.kind}` }, head, h('p', { text: s.kind === 'do' ? s.text : `“${s.text}”` }));
+  const el = h('div', { class: `cstep is-${s.kind}` }, head, h('p', { text: s.kind === 'do' ? s.text : `“${s.text}”` }));
+  if (s.figure === 'circles') el.append(circlesFigure());
+  return el;
 }
 
 /* 대답 따라가기 */

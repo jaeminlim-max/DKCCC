@@ -132,3 +132,68 @@
     animation: fade 0.2s ease both;
   }
 }
+
+/* 두 원 도식 */
+.circles-figure {
+  margin: 14px 0 0;
+  padding: 12px 8px 10px;
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.circles-figure svg {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.circles-figure figcaption {
+  margin-top: 6px;
+  text-align: center;
+}
+
+.cf-ring {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.5;
+}
+
+.cf-dot {
+  fill: var(--muted);
+}
+
+.cf-chair {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cf-me {
+  fill: var(--ink);
+  font-weight: 800;
+  text-anchor: middle;
+}
+
+.cf-cross path {
+  fill: none;
+  stroke: var(--hl);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.cf-cross-key {
+  color: var(--hl);
+  font-weight: 800;
+}
+
+.cf-side {
+  fill: var(--accent-text);
+  font-size: 15px;
+  font-weight: 800;
+  text-anchor: middle;
+}

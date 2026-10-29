@@ -124,7 +124,8 @@ export const PLEDGE = {
 // 원문: LTC초급IG p066-099.md, PDF p.99 「전도시 여러 가지 반응대처법 도표」(학생용 교재 70p).
 // 스캔본을 옮긴 원고라 원본 PDF와 대조 필요. 문장은 원고 그대로.
 // 참고: Q2 '왼쪽' 문장이 도표는 "예수님을 알고 싶을 때", 본문(PDF p.96)과 진행안은 "예수님을 믿고 싶을 때".
-export type ChartStep = { kind: 'ask' | 'say' | 'do'; text: string; page?: string };
+// figure: 'circles' = 사영리 9쪽 두 원 그림을 함께 보여 준다 (책자 그림이 아니라 도표 설명을 바탕으로 새로 그린 도식).
+export type ChartStep = { kind: 'ask' | 'say' | 'do'; text: string; page?: string; figure?: 'circles' };
 export interface ChartNode {
   steps: ChartStep[];
   answers?: { label: string; next: string }[];
@@ -136,7 +137,7 @@ export const CHART = {
   start: 'q1',
   nodes: {
     q1: {
-      steps: [{ kind: 'ask', page: '사영리 9쪽', text: '어느 그림이 당신의 삶을 잘 나타내고 있습니까?' }],
+      steps: [{ kind: 'ask', page: '사영리 9쪽', text: '어느 그림이 당신의 삶을 잘 나타내고 있습니까?', figure: 'circles' }],
       answers: [
         { label: '왼쪽 · 중간 · 무응답 · 잘 모름', next: 'q1-left' },
         { label: '오른쪽', next: 'q1-right' },
@@ -162,7 +163,7 @@ export const CHART = {
       ],
     },
     q2: {
-      steps: [{ kind: 'ask', page: '사영리 9쪽', text: '당신은 어느 그림에 속하게 되기를 원하십니까?' }],
+      steps: [{ kind: 'ask', page: '사영리 9쪽', text: '당신은 어느 그림에 속하게 되기를 원하십니까?', figure: 'circles' }],
       answers: [
         { label: '왼쪽', next: 'q2-left' },
         { label: '오른쪽', next: 'q3' },
