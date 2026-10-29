@@ -6,10 +6,16 @@ import { createHash } from 'node:crypto';
 // 배포 경로. GitHub Pages 프로젝트 사이트면 '/저장소이름/'.
 const base = process.env.SITE_BASE ?? '/';
 
-const pages = ['index', 'circles', 'confess', 'sentence', 'homework', 'prayer-list', 'pledge', 'qr'];
+const pages = ['index', 'confess', 'homework', 'prayer-list', 'response-chart', 'pledge', 'staff'];
 const input = Object.fromEntries(
   pages.map((p) => [p, resolve(__dirname, p === 'index' ? 'index.html' : `${p}/index.html`)]),
 );
+
+// 간증문 서버(Google Apps Script). 응답은 script.googleusercontent.com으로 넘어온다.
+const gasUrl = process.env.VITE_GAS_URL ?? '';
+const gasOrigins = gasUrl
+  ? [new URL(gasUrl).origin, ...(gasUrl.startsWith('https://script.google.com/') ? ['https://script.googleusercontent.com'] : [])]
+  : [];
 
 // 빌드 결과에만 CSP를 넣는다 (개발 서버는 인라인 스타일을 주입하므로 제외).
 // 외부 출처는 전부 막는다. /confess는 fetch·XHR·WebSocket 자체를 막는다.
@@ -21,13 +27,16 @@ function csp(): Plugin {
       order: 'post',
       handler(html, ctx) {
         const isConfess = ctx.path.includes('/confess/');
+        // 서버와 통신하는 페이지는 간증문 제출(/homework)과 간사용(/staff)뿐이다.
+        const usesServer = ctx.path.includes('/homework/') || ctx.path.includes('/staff/');
+        const connect = isConfess ? "'none'" : ["'self'", ...(usesServer ? gasOrigins : [])].join(' ');
         const policy = [
           "default-src 'self'",
           "script-src 'self'",
           "style-src 'self'",
           "img-src 'self' data: blob:",
           "font-src 'self'",
-          `connect-src ${isConfess ? "'none'" : "'self'"}`,
+          `connect-src ${connect}`,
           "worker-src 'self'",
           "manifest-src 'self'",
           "object-src 'none'",

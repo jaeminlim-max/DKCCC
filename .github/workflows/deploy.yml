@@ -29,6 +29,8 @@ jobs:
         env:
           SITE_BASE: /DKCCC/
           SITE_URL: https://jaeminlim-max.github.io/DKCCC/
+          # 간증문 서버(Apps Script 웹 앱) 주소. 저장소 Settings → Secrets and variables → Actions → Variables의 GAS_URL.
+          VITE_GAS_URL: ${{ vars.GAS_URL }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist

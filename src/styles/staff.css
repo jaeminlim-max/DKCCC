@@ -84,3 +84,51 @@
 .qr-actions .btn {
   width: 100%;
 }
+
+.count {
+  font-weight: 800;
+}
+
+.titem {
+  margin-top: 10px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.titem summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.titem summary span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.titem.is-old {
+  opacity: 0.7;
+}
+
+.tbody {
+  padding: 0 16px 12px;
+}
+
+.tqa + .tqa {
+  margin-top: 12px;
+}
+
+.tq-q {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.tq-a {
+  white-space: pre-wrap;
+}

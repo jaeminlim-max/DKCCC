@@ -68,106 +68,6 @@
   color: var(--hl);
 }
 
-/* ── 그리기 ─────────────────────────────────────────── */
-.draw-paper {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  border-radius: 18px;
-  background: var(--paper);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-}
-
-.draw-paper canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-  touch-action: none;
-}
-
-.draw-empty {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  color: var(--muted);
-  font-size: 1rem;
-  text-align: center;
-  pointer-events: none;
-}
-
-.tool-row {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.tool-row .btn {
-  flex: 1 1 auto;
-  min-height: 52px;
-  padding: 0 10px;
-  font-size: 0.95rem;
-  white-space: nowrap;
-}
-
-.tool-row .btn[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #fff;
-}
-
-.ref-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.ref-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.ref-list b {
-  display: block;
-}
-
-.ref-list small {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.ref-list cite {
-  flex: none;
-  color: var(--muted);
-  font-size: 0.85rem;
-  font-style: normal;
-  font-weight: 600;
-}
-
-details.more {
-  border-radius: 14px;
-  background: var(--surface);
-  padding: 0 16px;
-}
-
-details.more summary {
-  display: flex;
-  align-items: center;
-  min-height: 52px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-details.more[open] {
-  padding-bottom: 8px;
-}
-
 /* ── 세그먼트 (과제 ①/②) ────────────────────────────── */
 .segment {
   display: grid;
@@ -355,4 +255,13 @@ details.more[open] {
 #fill {
   width: 100%;
   margin-top: 10px;
+}
+
+.submit-state {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.submit-state:empty {
+  display: none;
 }

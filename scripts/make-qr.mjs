@@ -5,11 +5,10 @@ import { SITE_URL } from '../site.config.mjs';
 
 const pages = [
   { path: '', title: 'LTC 초급 활동 (홈)' },
-  { path: 'circles/', title: '세 원 그리기' },
   { path: 'confess/', title: '죄 목록' },
-  { path: 'sentence/', title: '문장 하나 들고 가기' },
   { path: 'homework/', title: '과제' },
   { path: 'prayer-list/', title: '기도 명단 카드' },
+  { path: 'response-chart/', title: '반응대처법 도표' },
   { path: 'pledge/', title: '결단 카드' },
 ];
 
