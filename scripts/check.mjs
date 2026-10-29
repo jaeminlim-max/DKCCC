@@ -16,12 +16,22 @@ const ok = (name, pass, detail = '') => {
   console.log(`${pass ? 'PASS' : 'FAIL'}  ${name}${detail ? '  — ' + detail : ''}`);
 };
 
+const GAS = process.env.GAS ?? ''; // 간증문 서버 주소 (테스트에서는 scripts/mock-gas.mjs)
 const browser = await chromium.launch();
 const external = [];
+const gasCalls = []; // { page, action }
 async function newContext(opts = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true, ...opts });
   ctx.on('request', (r) => {
     const u = r.url();
+    if (GAS && u.startsWith(GAS)) {
+      let action = '?';
+      try {
+        action = JSON.parse(r.postData() ?? '{}').action;
+      } catch {}
+      gasCalls.push({ page: r.frame().url(), action });
+      return;
+    }
     if (!u.startsWith(ORIGIN) && !u.startsWith('data:') && !u.startsWith('blob:')) external.push(u);
   });
   return ctx;
@@ -155,6 +165,7 @@ async function storageSnapshot(page) {
   await page.locator('.chip', { hasText: '박지은' }).click();
   ok('누르면 칸 1에 들어감', (await page.locator('#box1 .name-list li').allTextContents()).some((t) => t.includes('박지은')));
   await page.getByRole('button', { name: /하나님, 보여 주세요/ }).click();
+  ok('칸 1 안내 문구', await page.getByText('한 명을 떠올려 보세요.').isVisible());
   ok('"하나님, 보여 주세요" 채워짐', (await page.locator('#grow').inputValue()) === '하나님, 보여 주세요');
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '다음' }).click();
   ok('헌신 기도 마지막 문장', (await page.locator('#slide').textContent()) === '예수님의 이름으로 기도합니다. 아멘.');
@@ -171,21 +182,6 @@ async function storageSnapshot(page) {
   const keys = await page.evaluate(() => Object.keys(localStorage));
   ok('결단 카드 "이 폰에서 지우기"', !keys.includes('ltc:pledge'), keys.join(','));
 
-  /* 문장 */
-  await page.goto(BASE + 'sentence/');
-  await page.locator('#word').fill('진로');
-  await page.locator('#with-word').check();
-  await page.waitForTimeout(600);
-  await page.reload();
-  ok('문장: 영역 저장 유지', (await page.locator('#word').inputValue()) === '진로');
-  await page.getByRole('button', { name: '잠금화면 이미지 저장' }).click();
-  const simg = page.locator('dialog.sheet img');
-  await simg.waitFor();
-  const ssize = await simg.evaluate((i) => new Promise((r) => (i.complete ? r([i.naturalWidth, i.naturalHeight]) : (i.onload = () => r([i.naturalWidth, i.naturalHeight])))));
-  ok('잠금화면 이미지 1080×1920 (9:16)', ssize[0] === 1080 && ssize[1] === 1920, ssize.join('×'));
-  await page.screenshot({ path: `${OUT}/sentence-sheet.png` });
-  await page.getByRole('button', { name: '닫기' }).click();
-
   /* 과제 */
   await page.goto(BASE + 'homework/');
   await page.locator('#read').check();
@@ -196,18 +192,64 @@ async function storageSnapshot(page) {
   ok('과제: 탭·간증문 저장 유지', (await page.locator('#a0').inputValue()) === '영접 전 이야기');
   await page.screenshot({ path: `${OUT}/homework-2.png`, fullPage: true });
 
-  /* 세 원 그리기 */
-  await page.goto(BASE + 'circles/');
-  const pad = page.locator('#pad');
-  const box = await pad.boundingBox();
-  await page.mouse.move(box.x + 60, box.y + 60);
-  await page.mouse.down();
-  for (let a = 0; a <= 360; a += 20) await page.mouse.move(box.x + 120 + 50 * Math.cos((a * Math.PI) / 180), box.y + 120 + 50 * Math.sin((a * Math.PI) / 180));
-  await page.mouse.up();
-  ok('그리면 [그림 내려받기] 활성', await page.getByRole('button', { name: /그림 내려받기/ }).isEnabled());
-  const circleKeys = await page.evaluate(() => Object.keys(localStorage).filter((k) => k.includes('circle')));
-  ok('세 원 그리기는 자동 저장 없음', circleKeys.length === 0);
-  await page.screenshot({ path: `${OUT}/circles-drawn.png` });
+  await ctx.close();
+}
+
+/* ── 반응대처법 도표 · 간사용 암호 ───────────────────── */
+{
+  const ctx = await newContext();
+  const page = await ctx.newPage();
+  await page.goto(BASE + 'response-chart/');
+  await page.getByRole('button', { name: '오른쪽' }).click();
+  await page.getByRole('button', { name: '없다' }).click();
+  await page.getByRole('button', { name: '세 번째 질문으로' }).click();
+  await page.getByRole('button', { name: '마음에 안 든다' }).click();
+  await page.getByRole('button', { name: '아니오' }).click();
+  ok('도표: Q1 오른쪽 → 없다 → Q3 → 안 든다 → 아니오 끝까지', await page.locator('#flow').getByText('사영리를 선물로 드릴 테니').isVisible());
+  await page.screenshot({ path: `${OUT}/chart-flow.png`, fullPage: true });
+  await page.getByRole('button', { name: '한 단계 뒤로' }).click();
+  ok('도표: 한 단계 뒤로', await page.locator('#flow').getByRole('button', { name: '아니오' }).isVisible());
+  await page.getByRole('tab', { name: '전체 도표' }).click();
+  ok('도표: 전체 보기에 Q1·Q2·Q3', (await page.locator('.tq h2').allTextContents()).join() === 'Q1,Q2,Q3');
+  await page.screenshot({ path: `${OUT}/chart-all.png`, fullPage: true });
+
+  /* 간증문 제출 → 간사용 조회 */
+  if (GAS) {
+    await page.goto(BASE + 'homework/');
+    await page.getByRole('tab', { name: /3분 간증문/ }).click();
+    const before = gasCalls.length;
+    await page.locator('#name').fill('홍길동');
+    await page.locator('#a0').fill('=SUM(1,1) 영접 전 이야기');
+    await page.locator('#a2').fill('영접 후 이야기');
+    await page.waitForTimeout(700);
+    ok('제출 전에는 서버 요청 없음', gasCalls.length === before);
+    page.once('dialog', (d) => d.accept());
+    await page.getByRole('button', { name: '제출하기' }).click();
+    await page.getByText(/제출했어요 ·/).waitFor({ timeout: 5000 });
+    ok('간증문 제출 성공 표시', await page.getByText(/제출했어요 ·/).isVisible());
+    await page.screenshot({ path: `${OUT}/homework-submitted.png`, fullPage: true });
+
+    await page.goto(BASE + 'staff/');
+    ok('간사용: 암호 화면 (목록·QR 숨김)', (await page.locator('#pw').isVisible()) && (await page.locator('.qr-item, .titem').count()) === 0);
+    await page.locator('#pw').fill('000000');
+    await page.getByRole('button', { name: '열기' }).click();
+    await page.getByText('암호가 맞지 않습니다.').waitFor({ timeout: 5000 });
+    ok('간사용: 틀린 암호는 서버가 거절', (await page.locator('.titem, .qr-item').count()) === 0);
+    await page.locator('#pw').fill('test-pw');
+    await page.getByRole('button', { name: '열기' }).click();
+    await page.locator('.titem').first().waitFor({ timeout: 5000 });
+    ok('간사용: 맞는 암호로 간증문 목록', (await page.locator('.titem summary').first().textContent()).includes('홍길동'));
+    await page.locator('.titem summary').first().click();
+    await page.screenshot({ path: `${OUT}/staff-list.png`, fullPage: true });
+    await page.getByRole('tab', { name: 'QR 모음' }).click();
+    await page.locator('.qr-item').first().waitFor();
+    ok('간사용: QR 6개', (await page.locator('.qr-item').count()) === 6);
+    const html = await page.content();
+    ok('간사용: 페이지 코드에 암호 없음', !html.includes('test-pw') || (await page.locator('#pw').count()) === 0);
+    await page.reload();
+    ok('간사용: 새로고침하면 다시 암호를 물음', await page.locator('#pw').isVisible());
+    ok('서버 요청은 /homework 제출과 /staff 조회뿐', gasCalls.every((c) => (c.page.includes('/homework/') && c.action === 'submit') || (c.page.includes('/staff/') && c.action === 'list')), JSON.stringify(gasCalls));
+  }
   await ctx.close();
 }
 
@@ -224,7 +266,7 @@ async function storageSnapshot(page) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  for (const p of ['', 'circles/', 'confess/', 'sentence/', 'homework/', 'prayer-list/', 'pledge/', 'qr/']) {
+  for (const p of ['', 'confess/', 'homework/', 'prayer-list/', 'response-chart/', 'pledge/', 'staff/']) {
     await page.goto(BASE + p);
     await page.waitForTimeout(200);
   }
@@ -248,10 +290,10 @@ async function storageSnapshot(page) {
   await page.reload();
   await ctx.setOffline(true);
   const failed = [];
-  for (const p of ['', 'circles/', 'confess/', 'sentence/', 'homework/', 'prayer-list/', 'pledge/', 'qr/']) {
+  for (const p of ['', 'confess/', 'homework/', 'prayer-list/', 'response-chart/', 'pledge/', 'staff/']) {
     try {
       await page.goto(BASE + p);
-      await page.locator('h1, .big-sentence').first().waitFor({ timeout: 3000 });
+      await page.locator('h1').first().waitFor({ timeout: 3000 });
     } catch {
       failed.push(p || '/');
     }

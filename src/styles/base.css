@@ -354,6 +354,7 @@ main {
 }
 
 input[type='text'],
+input[type='password'],
 textarea {
   display: block;
   width: 100%;
@@ -373,6 +374,7 @@ textarea {
 }
 
 input[type='text']:focus,
+input[type='password']:focus,
 textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -515,4 +517,8 @@ dialog.sheet .stack > .btn {
   *::after {
     scroll-behavior: auto !important;
   }
+}
+
+.gate .btn {
+  width: 100%;
 }

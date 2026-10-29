@@ -4,7 +4,7 @@ import { mkdirSync } from 'node:fs';
 const { chromium } = createRequire(import.meta.url)('playwright');
 
 const BASE = process.env.BASE ?? 'http://localhost:4173/';
-const pages = (process.env.PAGES ?? ',circles/,confess/,sentence/,homework/,prayer-list/,pledge/,qr/').split(',');
+const pages = (process.env.PAGES ?? ',confess/,homework/,prayer-list/,response-chart/,pledge/,staff/').split(',');
 const widths = (process.env.WIDTHS ?? '360,390,430').split(',').map(Number);
 const schemes = (process.env.SCHEMES ?? 'light,dark').split(',');
 const out = process.env.OUT ?? 'shots';
