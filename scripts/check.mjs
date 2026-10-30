@@ -182,6 +182,7 @@ async function storageSnapshot(page) {
     await page.getByRole('button', { name: '추가', exact: true }).click();
   }
   ok('기도 명단 3명 추가', (await page.locator('.name-list li').count()) === 3);
+  ok('기도 명단 하단 문구', await page.getByText('이 카드는 폰에 저장돼요. 오늘 마지막 시간에 다시 엽니다. 같은 폰으로 열어야 다시 불러올 수 있어요.').isVisible());
   await page.reload();
   ok('새로고침 후 명단 유지', (await page.locator('.name-list li').count()) === 3);
   await page.getByRole('button', { name: '카드 이미지 저장' }).click();
