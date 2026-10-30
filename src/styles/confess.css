@@ -582,8 +582,10 @@
   fill: #fff;
 }
 
-.train figcaption {
-  margin-top: 8px;
+.train .train-caption {
+  margin-top: 12px;
+  font-size: 1.05rem;
+  line-height: 1.7;
 }
 
 @keyframes fade {
