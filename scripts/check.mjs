@@ -217,9 +217,11 @@ async function storageSnapshot(page) {
   ok('결단 카드에서 기도 명단 보임', (await page.locator('.chip').count()) === 3);
   await page.locator('.chip', { hasText: '박지은' }).click();
   ok('누르면 칸 1에 들어감', (await page.locator('#box1 .name-list li').allTextContents()).some((t) => t.includes('박지은')));
-  await page.getByRole('button', { name: /하나님, 보여 주세요/ }).click();
+  await page.locator('#box2 input').fill('이수민');
+  await page.locator('#box2').getByRole('button', { name: '등록' }).click();
   ok('칸 1 안내 문구', await page.getByText('한 명을 떠올려 보세요.').isVisible());
-  ok('"하나님, 보여 주세요" 채워짐', (await page.locator('#grow').inputValue()) === '하나님, 보여 주세요');
+  ok('칸 2 [등록]으로 한 명 등록', (await page.locator('#box2 .name-list li').allTextContents()).join() === '이수민');
+  ok('"하나님, 보여 주세요" 버튼 없음', (await page.getByText('하나님, 보여 주세요').count()) === 0);
   for (let i = 0; i < 4; i++) await page.getByRole('button', { name: '다음' }).click();
   ok('헌신 기도 마지막 문장', (await page.locator('#slide').textContent()) === '예수님의 이름으로 기도합니다. 아멘.');
   await page.screenshot({ path: `${OUT}/pledge-filled.png`, fullPage: true });
@@ -229,7 +231,7 @@ async function storageSnapshot(page) {
   await page.screenshot({ path: `${OUT}/pledge-sheet.png` });
   await page.getByRole('button', { name: '닫기' }).click();
   await page.reload();
-  ok('결단 카드 새로고침 후 유지', (await page.locator('#grow').inputValue()) === '하나님, 보여 주세요');
+  ok('결단 카드 새로고침 후 유지', (await page.locator('#box2 .name-list li').allTextContents()).join() === '이수민');
   page.once('dialog', (d) => d.accept());
   await page.getByRole('button', { name: '이 폰에서 지우기' }).click();
   const keys = await page.evaluate(() => Object.keys(localStorage));

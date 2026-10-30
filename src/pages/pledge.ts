@@ -36,8 +36,6 @@ app.innerHTML = `
   <section class="box" id="box2" aria-labelledby="b2">
     <h2 id="b2"><span class="box-no">2</span>${PLEDGE.box2.name}</h2>
     <p class="hint-line">${PLEDGE.box2.hint}</p>
-    <input type="text" id="grow" maxlength="30" autocomplete="off" aria-label="${PLEDGE.box2.name}">
-    <button type="button" class="btn" id="fill">“${PLEDGE.box2.fill}”</button>
   </section>
 
   <section class="section" aria-labelledby="pt">
@@ -168,18 +166,18 @@ $('#import').addEventListener('click', () => {
   renderChips();
 });
 
-/* 칸 2 — 함께 자랄 한 사람 */
-const grow = $<HTMLInputElement>('#grow');
-grow.value = data.grow;
-grow.addEventListener('input', () => {
-  data.grow = grow.value;
-  persist();
+/* 칸 2 — 순모임 도전해볼 사람 (한 명, [등록]) */
+const grow = createNameList({
+  names: data.grow ? [data.grow] : [],
+  label: PLEDGE.box2.name,
+  addText: '등록',
+  max: 1,
+  onChange: (names) => {
+    data.grow = names[0] ?? '';
+    persist();
+  },
 });
-$('#fill').addEventListener('click', () => {
-  grow.value = PLEDGE.box2.fill;
-  data.grow = grow.value;
-  persist();
-});
+$('#box2').append(grow.root);
 
 /* 헌신 기도 — 한 문장씩 */
 let idx = 0;
@@ -206,7 +204,7 @@ $('#clear').addEventListener('click', () => {
   data.evangelize = [];
   data.grow = '';
   list.set([]);
-  grow.value = '';
+  grow.set([]);
   renderChips();
   toast('지웠어요');
 });
