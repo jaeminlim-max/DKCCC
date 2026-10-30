@@ -31,6 +31,10 @@ function wipe(): void {
   cleanupFns.forEach((f) => f());
   cleanupFns = [];
   document.querySelectorAll('textarea').forEach((t) => (t.value = ''));
+  document.querySelectorAll('canvas').forEach((c) => {
+    c.width = 0;
+    c.height = 0;
+  });
   document.querySelectorAll('.tear-layer, .dim-layer').forEach((n) => n.remove());
   layer = null;
   pieces = [];
@@ -122,6 +126,9 @@ function paperCard(): HTMLElement {
   return h('div', { class: 'paper' + (darkPaper ? ' is-dark' : '') });
 }
 
+type Mode = 'type' | 'hand';
+let mode: Mode = 'type';
+
 function renderWrite(): void {
   const card = paperCard();
   const ta = h('textarea', {
@@ -135,32 +142,184 @@ function renderWrite(): void {
     rows: '10',
     placeholder: '이 종이는 저장되지 않습니다.',
   });
-  card.append(ta);
+  const hand = createHandwriting(card);
+  card.append(ta, hand.canvas);
 
   const done = h('button', { class: 'btn btn-primary', type: 'button', text: '작성 완료', disabled: '' });
-  ta.addEventListener('input', () => {
-    done.disabled = ta.value.trim() === '';
-  });
+  const hasContent = () => (mode === 'type' ? ta.value.trim() !== '' : hand.hasInk());
+  const update = () => {
+    done.disabled = !hasContent();
+  };
+  ta.addEventListener('input', update);
+  hand.onChange = update;
+
+  /* 쓰는 방법: 타이핑 / 손글씨 */
+  const typeBtn = h('button', { type: 'button', class: 'mode-btn', 'aria-pressed': 'true' });
+  typeBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>타이핑';
+  const handBtn = h('button', { type: 'button', class: 'mode-btn', 'aria-pressed': 'false' });
+  handBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg>손글씨';
+  const undoBtn = h('button', { type: 'button', class: 'btn tool', text: '되돌리기' });
+  const clearBtn = h('button', { type: 'button', class: 'btn tool', text: '모두 지우기' });
+  const handTools = h('div', { class: 'hand-tools' }, undoBtn, clearBtn);
+  undoBtn.addEventListener('click', () => hand.undo());
+  clearBtn.addEventListener('click', () => hand.clear());
+
+  const setMode = (m: Mode) => {
+    if (m === mode) return;
+    if (hasContent() && !window.confirm('지금 쓴 내용은 지워집니다. 쓰는 방법을 바꿀까요?')) return;
+    ta.value = '';
+    hand.clear();
+    mode = m;
+    applyMode();
+  };
+  const applyMode = () => {
+    typeBtn.setAttribute('aria-pressed', String(mode === 'type'));
+    handBtn.setAttribute('aria-pressed', String(mode === 'hand'));
+    ta.hidden = mode !== 'type';
+    hand.canvas.hidden = mode !== 'hand';
+    handTools.hidden = mode !== 'hand';
+    card.classList.toggle('is-hand', mode === 'hand');
+    update();
+    if (mode === 'type') ta.focus({ preventScroll: true });
+    else {
+      ta.blur();
+      hand.resize();
+    }
+  };
+  typeBtn.addEventListener('click', () => setMode('type'));
+  handBtn.addEventListener('click', () => setMode('hand'));
+
   done.addEventListener('click', () => {
-    if (ta.value.trim() === '') return;
-    renderCover(card, ta);
+    if (!hasContent()) return;
+    renderCover(card, mode === 'type' ? ta : hand.canvas, hand);
   });
 
-  app.replaceChildren(stepHead('❷', CONFESS.step2), card, bottomBar(done));
-  ta.focus({ preventScroll: true });
+  const modeRow = h('div', { class: 'mode-row', role: 'group', 'aria-label': '쓰는 방법' }, typeBtn, handBtn);
+  app.replaceChildren(stepHead('❷', CONFESS.step2), modeRow, handTools, card, bottomBar(done));
+  applyMode();
+}
+
+/* 손글씨: 손가락으로 쓰는 캔버스. 획은 메모리에만 있고 어디에도 저장하지 않는다. */
+type Pt = [number, number];
+interface Hand {
+  canvas: HTMLCanvasElement;
+  hasInk: () => boolean;
+  undo: () => void;
+  clear: () => void;
+  resize: () => void;
+  lock: () => void;
+  onChange: () => void;
+}
+
+function createHandwriting(card: HTMLElement): Hand {
+  const canvas = h('canvas', { class: 'hand-canvas', 'aria-label': '손글씨로 쓰는 곳' });
+  const ctx = canvas.getContext('2d')!;
+  let strokes: Pt[][] = [];
+  let current: Pt[] | null = null;
+  let locked = false;
+
+  const draw = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = getComputedStyle(card).color;
+    ctx.lineWidth = 2.6 * (canvas.width / Math.max(1, canvas.clientWidth));
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    for (const s of strokes) {
+      ctx.beginPath();
+      s.forEach(([x, y], i) => (i ? ctx.lineTo(x * canvas.width, y * canvas.height) : ctx.moveTo(x * canvas.width, y * canvas.height)));
+      if (s.length === 1) ctx.lineTo(s[0][0] * canvas.width + 0.5, s[0][1] * canvas.height);
+      ctx.stroke();
+    }
+  };
+  const resize = () => {
+    const r = card.getBoundingClientRect();
+    if (!r.width) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    canvas.width = Math.round(r.width * dpr);
+    canvas.height = Math.round(r.height * dpr);
+    draw();
+  };
+  const point = (e: PointerEvent): Pt => {
+    const r = canvas.getBoundingClientRect();
+    return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height];
+  };
+  canvas.addEventListener('pointerdown', (e) => {
+    if (locked) return;
+    canvas.setPointerCapture(e.pointerId);
+    current = [point(e)];
+    strokes.push(current);
+    draw();
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!current) return;
+    for (const ev of e.getCoalescedEvents?.() ?? [e]) current.push(point(ev));
+    draw();
+  });
+  const end = () => {
+    if (!current) return;
+    current = null;
+    hand.onChange();
+  };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+  const ro = new ResizeObserver(() => {
+    if (!locked) resize();
+  });
+  ro.observe(card);
+
+  const hand: Hand = {
+    canvas,
+    hasInk: () => strokes.length > 0,
+    undo: () => {
+      strokes.pop();
+      draw();
+      hand.onChange();
+    },
+    clear: () => {
+      strokes = [];
+      draw();
+      hand.onChange();
+    },
+    resize,
+    lock: () => {
+      locked = true;
+      ro.disconnect();
+    },
+    onChange: () => undefined,
+  };
+  cleanupFns.push(() => {
+    strokes = [];
+    ro.disconnect();
+    canvas.width = 0;
+    canvas.height = 0;
+  });
+  return hand;
 }
 
 /* ── ❸ 흐려지고 요일 1:9이 대각선으로 덮음 ───────── */
 // 구절을 줄로 나눈 것 (본문은 그대로)
 const VERSE_LINES = ['만일 우리가 우리 죄를 자백하면', '그는 미쁘시고 의로우사', '우리 죄를 사하시며', '우리를 모든 불의에서', '깨끗하게 하실 것이요'];
 
-function renderCover(card: HTMLElement, ta: HTMLTextAreaElement): void {
-  // 입력칸을 잠그고(수정 불가), 같은 글을 잠긴 글로 바꾼 뒤 입력값은 바로 비운다
-  const written = h('div', { class: 'written', 'aria-hidden': 'true' });
-  written.textContent = ta.value;
-  ta.blur();
-  ta.value = '';
-  ta.replaceWith(written);
+function renderCover(card: HTMLElement, source: HTMLTextAreaElement | HTMLCanvasElement, hand: Hand): void {
+  // 잠그기(수정 불가). 타이핑은 같은 글을 잠긴 글로 바꾸고 입력값은 바로 비운다. 손글씨는 캔버스를 잠근다.
+  let written: HTMLElement;
+  card.querySelectorAll('textarea, canvas').forEach((el) => {
+    if (el !== source) el.remove();
+  });
+  if (source instanceof HTMLTextAreaElement) {
+    written = h('div', { class: 'written ink-layer', 'aria-hidden': 'true' });
+    written.textContent = source.value;
+    source.blur();
+    source.value = '';
+    source.replaceWith(written);
+  } else {
+    hand.lock();
+    written = source;
+    written.classList.add('ink-layer');
+    written.setAttribute('aria-hidden', 'true');
+  }
   card.classList.add('is-locked');
 
   const head = stepHead('❸', '');
@@ -343,6 +502,15 @@ function makePiece(card: HTMLElement, rect: DOMRect, clip: string): HTMLElement 
   copy.removeAttribute('tabindex');
   copy.removeAttribute('aria-label');
   copy.classList.remove('is-shaken');
+  // 캔버스는 복제해도 그림이 따라오지 않으므로 직접 옮겨 그린다
+  const from = card.querySelectorAll('canvas');
+  copy.querySelectorAll('canvas').forEach((c, i) => {
+    const src = from[i];
+    if (!src) return;
+    c.width = src.width;
+    c.height = src.height;
+    c.getContext('2d')?.drawImage(src, 0, 0);
+  });
   copy.style.width = '100%';
   copy.style.height = '100%';
   copy.style.margin = '0';
