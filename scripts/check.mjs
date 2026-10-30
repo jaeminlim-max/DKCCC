@@ -121,20 +121,29 @@ async function storageSnapshot(page) {
   await page.waitForTimeout(300);
   ok('뒤로가기 후 빈 화면에서 시작', (await page.getByRole('button', { name: '시작하기' }).isVisible()) && !(await page.content()).includes('뒤로가기 테스트'));
 
-  // 앱 전환 (화면 가려짐)
+  // 화면 가려짐 (알림센터·제어센터·앱 전환): 가림막, 60초 안이면 유지, 넘으면 처음부터
+  const hide = () =>
+    page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+  const show = () =>
+    page.evaluate(() => {
+      Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
   await page.getByRole('button', { name: '시작하기' }).click();
   await page.clock.runFor(31000);
-  await page.locator('textarea').fill('앱 전환 테스트');
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
-  const hiddenHtml = await page.content();
-  await page.evaluate(() => {
-    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
-    document.dispatchEvent(new Event('visibilitychange'));
-  });
-  ok('앱 전환 시 즉시 비움, 돌아오면 빈 화면', !hiddenHtml.includes('앱 전환 테스트') && (await page.getByRole('button', { name: '시작하기' }).isVisible()));
+  await page.locator('textarea').fill('알림센터 테스트');
+  await hide();
+  ok('가려지면 가림막이 덮음', await page.locator('.veil').isVisible());
+  await page.clock.runFor(10000);
+  await show();
+  ok('10초 뒤 돌아오면 쓰던 내용 유지', (await page.locator('.veil').count()) === 0 && (await page.locator('textarea').inputValue()) === '알림센터 테스트');
+  await hide();
+  await page.clock.runFor(61000);
+  await show();
+  ok('60초 넘게 비우면 처음부터', (await page.getByRole('button', { name: '시작하기' }).isVisible()) && !(await page.content()).includes('알림센터 테스트'));
   // 손글씨 모드: 쓰기 → 완료 → 덮기 → 세 번 찢기 → 끝, 저장 없음
   await page.goto(BASE + 'confess/');
   await page.getByRole('button', { name: '시작하기' }).click();
