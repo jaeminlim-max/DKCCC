@@ -103,7 +103,7 @@ self.addEventListener('fetch', (e) => {
     e.respondWith((async () => {
       try {
         const res = await Promise.race([
-          fetch(req),
+          fetch(req, { cache: 'no-cache' }), // 브라우저 캐시(최대 10분)를 건너뛰고 서버에 확인
           new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
         ]);
         if (res && res.ok) (await caches.open(PRECACHE)).put(req, res.clone());
@@ -127,8 +127,12 @@ self.addEventListener('fetch', (e) => {
   };
 }
 
+// 화면 맨 아래에 보이는 버전 (폰이 최신 화면을 받았는지 확인용)
+const buildId = `${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '').slice(2)}-${(process.env.GITHUB_SHA ?? 'local').slice(0, 7)}`;
+
 export default defineConfig({
   base,
+  define: { __BUILD_ID__: JSON.stringify(buildId) },
   build: {
     rollupOptions: { input },
     modulePreload: { polyfill: false },

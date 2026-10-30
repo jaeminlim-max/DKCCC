@@ -5,6 +5,7 @@ import { h } from '../lib/dom';
 import '../styles/home.css';
 
 initPage();
+document.getElementById('build-id')!.textContent = `버전 ${__BUILD_ID__}`;
 
 type Day = 'mon' | 'tue';
 

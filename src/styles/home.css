@@ -124,3 +124,10 @@ a.act:active {
   min-height: 48px;
   color: var(--muted);
 }
+
+.build-id {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  opacity: 0.7;
+}

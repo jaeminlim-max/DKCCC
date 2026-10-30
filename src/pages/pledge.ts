@@ -14,11 +14,13 @@ initPage();
 
 interface Data {
   evangelize: string[];
-  grow: string;
+  grow: string[];
 }
-const data = load<Data>(KEYS.pledge, { evangelize: [], grow: '' });
+const data = load<Data>(KEYS.pledge, { evangelize: [], grow: [] });
 if (!Array.isArray(data.evangelize)) data.evangelize = [];
-if (typeof data.grow !== 'string') data.grow = '';
+// 예전 형식(한 칸 글자)도 받아 준다
+const oldGrow: unknown = data.grow;
+if (!Array.isArray(oldGrow)) data.grow = typeof oldGrow === 'string' && oldGrow.trim() ? [oldGrow.trim()] : [];
 const persist = () => save(KEYS.pledge, data);
 
 const app = $('#app');
@@ -36,8 +38,6 @@ app.innerHTML = `
   <section class="box" id="box2" aria-labelledby="b2">
     <h2 id="b2"><span class="box-no">2</span>${PLEDGE.box2.name}</h2>
     <p class="hint-line">${PLEDGE.box2.hint}</p>
-    <input type="text" id="grow" maxlength="30" autocomplete="off" aria-label="${PLEDGE.box2.name}">
-    <button type="button" class="btn" id="fill">“${PLEDGE.box2.fill}”</button>
   </section>
 
   <section class="section" aria-labelledby="pt">
@@ -168,18 +168,17 @@ $('#import').addEventListener('click', () => {
   renderChips();
 });
 
-/* 칸 2 — 함께 자랄 한 사람 */
-const grow = $<HTMLInputElement>('#grow');
-grow.value = data.grow;
-grow.addEventListener('input', () => {
-  data.grow = grow.value;
-  persist();
+/* 칸 2 — 순모임 도전해볼 사람 (여러 명, [등록]) */
+const grow = createNameList({
+  names: data.grow,
+  label: PLEDGE.box2.name,
+  addText: '등록',
+  onChange: (names) => {
+    data.grow = names;
+    persist();
+  },
 });
-$('#fill').addEventListener('click', () => {
-  grow.value = PLEDGE.box2.fill;
-  data.grow = grow.value;
-  persist();
-});
+$('#box2').append(grow.root);
 
 /* 헌신 기도 — 한 문장씩 */
 let idx = 0;
@@ -204,9 +203,9 @@ $('#clear').addEventListener('click', () => {
   if (!window.confirm('결단 카드 내용을 이 폰에서 지울까요?')) return;
   remove(KEYS.pledge);
   data.evangelize = [];
-  data.grow = '';
+  data.grow = [];
   list.set([]);
-  grow.value = '';
+  grow.set([]);
   renderChips();
   toast('지웠어요');
 });
@@ -214,8 +213,8 @@ $('#clear').addEventListener('click', () => {
 /* 카드 이미지 */
 $('#save').addEventListener('click', async () => {
   const names = data.evangelize;
-  const growText = data.grow.trim();
-  await ensureFont([PLEDGE.title, PLEDGE.box1.name, PLEDGE.box2.name, PLEDGE.carry, growText, ...names], [500, 700, 800]);
+  const growNames = data.grow;
+  await ensureFont([PLEDGE.title, PLEDGE.box1.name, PLEDGE.box2.name, PLEDGE.carry, ...growNames, ...names], [500, 700, 800]);
   const W = 1080;
   const H = 1350;
   const m = 96;
@@ -249,7 +248,12 @@ $('#save').addEventListener('click', async () => {
   y = section('2  ' + PLEDGE.box2.name, y);
   ctx.font = font(700, 50);
   ctx.fillStyle = '#F6F3EC';
-  y = drawWrapped(ctx, growText || ' ', m, y + 72, W - m * 2, 72);
+  // 아래 안내 문구(H - 150)와 겹치지 않을 만큼만 그린다
+  const room = Math.max(1, Math.floor((H - 150 - 60 - y) / 72));
+  wrap(ctx, growNames.length ? growNames.join(',  ') : ' ', W - m * 2).slice(0, room).forEach((l) => {
+    y += 72;
+    ctx.fillText(l, m, y);
+  });
 
   ctx.font = font(500, 32);
   ctx.fillStyle = '#B9C3DA';
