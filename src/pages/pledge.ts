@@ -4,7 +4,7 @@ import { $, h, toast } from '../lib/dom';
 import { load, remove, save, warnIfNoStorage } from '../lib/storage';
 import { createNameList } from '../lib/names';
 import { openImageSheet } from '../lib/image-save';
-import { drawWrapped, ensureFont, font, makeCanvas, wrap } from '../lib/canvas-text';
+import { ensureFont, font, makeCanvas, wrap } from '../lib/canvas-text';
 import { PLEDGE } from '../content';
 import { KEYS } from '../keys';
 import jsQR from 'jsqr';
@@ -214,7 +214,7 @@ $('#clear').addEventListener('click', () => {
 $('#save').addEventListener('click', async () => {
   const names = data.evangelize;
   const growNames = data.grow;
-  await ensureFont([PLEDGE.title, PLEDGE.box1.name, PLEDGE.box2.name, PLEDGE.carry, ...growNames, ...names], [500, 700, 800]);
+  await ensureFont([PLEDGE.title, PLEDGE.box1.name, PLEDGE.box2.name, PLEDGE.cardFooter, PLEDGE.cardFooterSource, ...growNames, ...names], [500, 700, 800]);
   const W = 1080;
   const H = 1350;
   const m = 96;
@@ -244,12 +244,17 @@ $('#save').addEventListener('click', async () => {
     ctx.fillText(l, m, y);
   });
 
+  // 맨 아래 문구는 길이에 맞춰 위로 올라간다 (마지막 줄이 출처, 그 아래 'LTC 초급' 줄)
+  ctx.font = font(500, 32);
+  const footer = [...wrap(ctx, PLEDGE.cardFooter, W - m * 2), PLEDGE.cardFooterSource];
+  const footerTop = H - 130 - (footer.length - 1) * 46;
+
   y = Math.max(y + 110, 720);
   y = section('2  ' + PLEDGE.box2.name, y);
   ctx.font = font(700, 50);
   ctx.fillStyle = '#F6F3EC';
-  // 아래 안내 문구(H - 150)와 겹치지 않을 만큼만 그린다
-  const room = Math.max(1, Math.floor((H - 150 - 60 - y) / 72));
+  // 아래 문구와 겹치지 않을 만큼만 그린다
+  const room = Math.max(1, Math.floor((footerTop - 60 - y) / 72));
   wrap(ctx, growNames.length ? growNames.join(',  ') : ' ', W - m * 2).slice(0, room).forEach((l) => {
     y += 72;
     ctx.fillText(l, m, y);
@@ -257,7 +262,7 @@ $('#save').addEventListener('click', async () => {
 
   ctx.font = font(500, 32);
   ctx.fillStyle = '#B9C3DA';
-  drawWrapped(ctx, PLEDGE.carry, m, H - 150, W - m * 2, 46);
+  footer.forEach((l, i) => ctx.fillText(l, m, footerTop + i * 46));
   ctx.font = font(500, 28);
   ctx.fillText('LTC 초급 2026.11.03', m, H - 70);
   void openImageSheet(c, 'ltc-결단카드.png', '결단 카드');
