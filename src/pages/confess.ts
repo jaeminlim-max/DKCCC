@@ -245,8 +245,14 @@ function createHandwriting(card: HTMLElement): Hand {
     const r = canvas.getBoundingClientRect();
     return [(e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height];
   };
+  // iOS: 길게 누를 때 돋보기·복사 메뉴가 뜨지 않게 터치 기본 동작을 막는다
+  const block = (e: TouchEvent) => e.preventDefault();
+  canvas.addEventListener('touchstart', block, { passive: false });
+  canvas.addEventListener('touchmove', block, { passive: false });
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   canvas.addEventListener('pointerdown', (e) => {
     if (locked) return;
+    e.preventDefault();
     canvas.setPointerCapture(e.pointerId);
     current = [point(e)];
     strokes.push(current);
@@ -379,28 +385,31 @@ function renderTear(card: HTMLElement): void {
   card.append(hint);
   card.setAttribute('role', 'button');
   card.setAttribute('tabindex', '0');
-  card.setAttribute('aria-label', '눌러서 찢으세요. 세 번 누르면 다 찢어집니다.');
+  card.setAttribute('aria-label', '눌러서 찢으세요.');
   card.focus({ preventScroll: true });
 
   const crack = crackLine();
-  let taps = 0;
+  let started = false;
 
+  // 한 번 누르면 찢김선 → 두 조각 → 여러 조각 → 가루가 되어 위로 날아감까지 이어진다
   const onTap = () => {
-    taps += 1;
+    if (started) return;
+    started = true;
     hint.remove();
-    if (taps === 1) {
-      vibrate(30);
-      card.append(crackSvg(crack));
-      card.classList.add('is-shaken');
-      later(() => card.classList.remove('is-shaken'), 260);
-    } else if (taps === 2) {
+    card.removeEventListener('pointerup', onTap);
+    const reduced = prefersReducedMotion();
+    vibrate(30);
+    card.append(crackSvg(crack));
+    card.classList.add('is-shaken');
+    later(() => {
+      card.classList.remove('is-shaken');
       vibrate(45);
       splitInTwo(card, crack);
-    } else if (taps === 3) {
+    }, reduced ? 150 : 420);
+    later(() => {
       vibrate([30, 40, 70]);
       shatter(crack);
-      card.removeEventListener('pointerup', onTap);
-    }
+    }, reduced ? 300 : 950);
   };
   card.addEventListener('pointerup', onTap);
   card.addEventListener('keydown', (e) => {
@@ -537,8 +546,6 @@ function splitInTwo(card: HTMLElement, c: Crack): void {
       fill: 'forwards',
     });
   });
-  // 두 조각을 눌러도 계속 찢긴다
-  layer.addEventListener('pointerup', () => card.dispatchEvent(new PointerEvent('pointerup')), { once: true });
 }
 
 function shatter(c: Crack): void {
@@ -560,31 +567,104 @@ function shatter(c: Crack): void {
   pieces = [];
 
   const reduced = prefersReducedMotion();
-  const fall = window.innerHeight + 200;
-  shards.forEach((s, i) => {
+  // 여섯 조각이 살짝 벌어진 뒤 가루가 되어 위로 날아간다
+  shards.forEach((sh, i) => {
     const dir = i < 3 ? -1 : 1;
+    const row = i % 3;
     const start = `translateX(${dir * 14}px) rotate(${dir * 2.5}deg)`;
-    const frames = reduced
-      ? [{ opacity: 1 }, { opacity: 0 }]
-      : [
-          { transform: start, opacity: 1 },
-          { transform: `translate(${dir * (24 + Math.random() * 30)}px, -${10 + Math.random() * 18}px) rotate(${dir * (6 + Math.random() * 8)}deg)`, opacity: 1, offset: 0.18 },
-          { transform: `translate(${dir * (40 + Math.random() * 90)}px, ${fall}px) rotate(${dir * (30 + Math.random() * 70)}deg)`, opacity: 0.9 },
-        ];
-    s.animate(frames, {
-      duration: reduced ? 300 : 1100 + Math.random() * 300,
-      delay: reduced ? 0 : (i % 3) * 70 + Math.random() * 60,
-      easing: reduced ? 'ease' : 'cubic-bezier(.45,0,.9,.55)',
-      fill: 'forwards',
-    });
+    const spread = `translate(${dir * (22 + row * 6)}px, ${(row - 1) * 10}px) rotate(${dir * (4 + row * 2)}deg)`;
+    const rise = `translate(${dir * (30 + row * 8)}px, ${-40 - row * 12}px) rotate(${dir * (8 + row * 3)}deg) scale(0.92)`;
+    sh.animate(
+      reduced
+        ? [{ opacity: 1 }, { opacity: 0 }]
+        : [
+            { transform: start, opacity: 1, filter: 'blur(0px)' },
+            { transform: spread, opacity: 1, filter: 'blur(0px)', offset: 0.25 },
+            { transform: rise, opacity: 0, filter: 'blur(2px)' },
+          ],
+      { duration: reduced ? 300 : 1500, delay: reduced ? 0 : 200 + (2 - row) * 120, easing: 'ease-in', fill: 'forwards' },
+    );
   });
+  if (!reduced) dust(fullRect, source);
 
   later(() => {
-    // 다 찢어지면 입력값과 DOM을 완전히 비운다
+    // 다 사라지면 입력값과 DOM을 완전히 비운다
     wipe();
     keepScreenOn(false);
     renderEnd();
-  }, reduced ? 450 : 1700);
+  }, reduced ? 450 : 2900);
+}
+
+/** 종이 자리에서 가루가 피어올라 위로 흩어진다 (캔버스 한 장, 끝나면 지움). */
+function dust(rect: DOMRect, paper: HTMLElement): void {
+  if (!layer) return;
+  const cs = getComputedStyle(paper);
+  // 종이 가루는 배경에 묻히지 않게 종이보다 한 톤 진하게(어두운 종이는 밝게)
+  const paperDust = paper.classList.contains('is-dark') ? '#5a6274' : '#c9bd9c';
+  const colors = [
+    paperDust,
+    paperDust,
+    paperDust,
+    cs.getPropertyValue('--paper-ink').trim() || '#1d2433',
+    cs.getPropertyValue('--verse-ink').trim() || '#2f5bd3',
+  ];
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const canvas = h('canvas', { class: 'dust' });
+  canvas.width = Math.round(window.innerWidth * dpr);
+  canvas.height = Math.round(window.innerHeight * dpr);
+  layer.append(canvas);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.scale(dpr, dpr);
+
+  type P = { x: number; y: number; vx: number; vy: number; r: number; c: string; born: number; life: number; wob: number };
+  const ps: P[] = [];
+  const N = Math.min(1100, Math.round((rect.width * rect.height) / 75));
+  for (let i = 0; i < N; i++) {
+    const u = Math.random();
+    const v = Math.random();
+    // 아래쪽부터 위쪽으로 차례로 흩어진다
+    ps.push({
+      x: rect.left + u * rect.width,
+      y: rect.top + v * rect.height,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: -(0.6 + Math.random() * 1.6),
+      r: 1 + Math.random() * 2.2,
+      c: colors[(Math.random() * colors.length) | 0],
+      born: 250 + (1 - v) * 700 + Math.random() * 250,
+      life: 1100 + Math.random() * 900,
+      wob: Math.random() * Math.PI * 2,
+    });
+  }
+  const t0 = performance.now();
+  let raf = 0;
+  const frame = (now: number) => {
+    const t = now - t0;
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    let alive = false;
+    for (const p of ps) {
+      const age = t - p.born;
+      if (age < 0) {
+        alive = true;
+        continue;
+      }
+      if (age > p.life) continue;
+      alive = true;
+      const k = age / 16;
+      const x = p.x + p.vx * k + Math.sin(p.wob + age / 260) * 6;
+      const y = p.y + p.vy * k - (age * age) / 9000;
+      ctx.globalAlpha = Math.max(0, 1 - age / p.life);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(x, y, p.r, p.r);
+    }
+    if (alive) raf = requestAnimationFrame(frame);
+  };
+  raf = requestAnimationFrame(frame);
+  cleanupFns.push(() => {
+    cancelAnimationFrame(raf);
+    canvas.width = 0;
+    canvas.height = 0;
+  });
 }
 
 /* ── 끝 화면 ──────────────────────────────────────── */
