@@ -7,6 +7,8 @@ import { openImageSheet } from '../lib/image-save';
 import { drawWrapped, ensureFont, font, makeCanvas, wrap } from '../lib/canvas-text';
 import { PLEDGE } from '../content';
 import { KEYS } from '../keys';
+import jsQR from 'jsqr';
+import { decodeNames } from '../lib/prayer-qr';
 
 initPage();
 
@@ -79,8 +81,12 @@ const chips = $('#chips');
 function renderChips(): void {
   if (chips.hidden) return;
   const saved = load<{ names: string[] }>(KEYS.prayerList, { names: [] }).names ?? [];
+  const upload = uploadControl();
   if (!saved.length) {
-    chips.replaceChildren(h('p', { class: 'note', text: '이 폰에 저장된 기도 명단이 없어요. 아래에 새로 적어 주세요.' }));
+    chips.replaceChildren(
+      h('p', { class: 'note', text: '이 폰에 저장된 기도 명단이 없어요. 기도 명단 카드 이미지를 저장해 두었다면 올려 주세요. 없으면 아래에 새로 적어 주세요.' }),
+      upload,
+    );
     return;
   }
   chips.replaceChildren(
@@ -97,8 +103,66 @@ function renderChips(): void {
       });
       return b;
     }),
+    upload,
   );
 }
+
+/* 저장한 기도 명단 카드 이미지에서 이름 되살리기 — 이미지는 폰 안에서만 읽고 어디로도 보내지 않는다 */
+function uploadControl(): HTMLElement {
+  const input = h('input', { type: 'file', accept: 'image/*', class: 'visually-hidden', id: 'card-file', 'aria-label': '기도 명단 카드 이미지' });
+  const btn = h('label', { class: 'btn upload', for: 'card-file', text: '저장한 카드 이미지 올리기' });
+  const msg = h('p', { class: 'note', 'aria-live': 'polite' });
+  input.addEventListener('change', async () => {
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+    msg.textContent = '이미지를 읽는 중…';
+    const names = await readCard(file);
+    if (!names) {
+      msg.textContent = '이 이미지에서 기도 명단을 찾지 못했어요. 이 사이트에서 저장한 기도 명단 카드 이미지인지 확인해 주세요.';
+      return;
+    }
+    // 되살린 이름은 이 브라우저의 기도 명단에도 저장한다
+    const saved = load<{ names: string[] }>(KEYS.prayerList, { names: [] }).names ?? [];
+    const merged = [...saved, ...names.filter((n) => !saved.includes(n))];
+    save(KEYS.prayerList, { names: merged });
+    toast(`카드에서 ${names.length}명을 불러왔어요`);
+    renderChips();
+  });
+  return h('div', { class: 'upload-row' }, input, btn, msg);
+}
+
+async function readCard(file: File): Promise<string[] | null> {
+  try {
+    const bitmap = await createImageBitmap(file);
+    // 전체를 먼저 보고, 못 찾으면 QR이 있는 오른쪽 위를 크게 다시 본다
+    const tries: [number, number, number, number][] = [
+      [0, 0, bitmap.width, bitmap.height],
+      [bitmap.width * 0.55, 0, bitmap.width * 0.45, bitmap.height * 0.35],
+    ];
+    for (const [sx, sy, sw, sh] of tries) {
+      const scale = Math.min(1, 1400 / Math.max(sw, sh)) * (sx > 0 ? 2 : 1);
+      const w = Math.round(sw * scale);
+      const hgt = Math.round(sh * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = hgt;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) continue;
+      ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, w, hgt);
+      const img = ctx.getImageData(0, 0, w, hgt);
+      const code = jsQR(img.data, w, hgt, { inversionAttempts: 'dontInvert' });
+      canvas.width = 0;
+      const names = code ? decodeNames(code.data) : null;
+      if (names && names.length) return names;
+    }
+    bitmap.close();
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 $('#import').addEventListener('click', () => {
   chips.hidden = !chips.hidden;
   renderChips();

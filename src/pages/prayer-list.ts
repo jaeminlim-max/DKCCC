@@ -5,7 +5,9 @@ import { load, remove, save, warnIfNoStorage } from '../lib/storage';
 import { createTimer } from '../lib/timer';
 import { createNameList } from '../lib/names';
 import { openImageSheet } from '../lib/image-save';
-import { drawWrapped, ensureFont, font, makeCanvas } from '../lib/canvas-text';
+import { drawWrapped, ensureFont, font, makeCanvas, wrap } from '../lib/canvas-text';
+import QRCode from 'qrcode';
+import { encodeNames } from '../lib/prayer-qr';
 import { PRAYER, VERSE_2PE_3_9 } from '../content';
 import { KEYS } from '../keys';
 
@@ -28,6 +30,7 @@ app.innerHTML = `
     <h2 id="names-title">이름 적기</h2>
   </div>
   <p class="section keep" id="keep"></p>
+  <p class="note" id="keep-image"></p>
   <div class="section">
     <button type="button" class="btn btn-quiet btn-danger" id="clear">이 폰에서 지우기</button>
   </div>
@@ -39,6 +42,7 @@ $('#verse').textContent = VERSE_2PE_3_9.text;
 $('#ref').textContent = VERSE_2PE_3_9.ref;
 $('#instruction').textContent = PRAYER.instruction;
 $('#keep').textContent = PRAYER.keep;
+$('#keep-image').textContent = PRAYER.keepImage;
 
 const list = createNameList({
   names: data.names,
@@ -78,47 +82,99 @@ $('#clear').addEventListener('click', () => {
 
 saveBtn.addEventListener('click', async () => {
   const names = data.names;
-  await ensureFont([PRAYER.title, PRAYER.instruction, VERSE_2PE_3_9.ref, ...names], [500, 700, 800]);
+  await ensureFont([PRAYER.title, PRAYER.instruction, VERSE_2PE_3_9.text, VERSE_2PE_3_9.ref, ...names], [500, 600, 700, 800]);
   const W = 1080;
-  const H = 1350;
-  const [c, ctx] = makeCanvas(W, H);
   const m = 96;
-  ctx.fillStyle = '#F6F3EC';
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = '#F28C38';
-  ctx.fillRect(m, 120, 80, 10);
-  ctx.fillStyle = '#111A2E';
-  ctx.font = font(800, 76);
-  ctx.fillText(PRAYER.title, m, 230);
-  ctx.font = font(500, 34);
-  ctx.fillStyle = '#4B556B';
-  let y = drawWrapped(ctx, PRAYER.instruction, m, 300, W - m * 2, 50);
+  const ink = '#2B2118';
+  const soft = '#6E5B49';
+  const accent = '#B4652A';
 
-  // 이름: 많으면 여러 줄로 나눈다
+  // 높이를 먼저 계산한다: 제목·안내 / 이름 / 구절
+  const [probe, pctx] = makeCanvas(10, 10);
+  void probe;
+  pctx.font = font(500, 32);
+  const verseLines = wrap(pctx, VERSE_2PE_3_9.text, W - m * 2).length;
   const cols = names.length > 20 ? 3 : names.length > 9 ? 2 : 1;
   const rows = Math.ceil(names.length / cols);
-  const top = y + 60;
-  const bottom = H - 190;
-  const lineH = Math.min(96, (bottom - top) / Math.max(rows, 1));
-  const size = Math.min(cols === 1 ? 58 : cols === 2 ? 48 : 38, lineH * 0.62);
-  ctx.font = font(700, size);
-  ctx.fillStyle = '#111A2E';
+  const nameSize = cols === 1 ? 54 : cols === 2 ? 46 : 38;
+  const lineH = Math.round(nameSize * 1.75);
+  const headH = 420;
+  const namesH = Math.max(rows * lineH, 240);
+  const verseH = 70 + verseLines * 50 + 64;
+  const H = Math.max(1350, headH + namesH + verseH + 110);
+
+  const [c, ctx] = makeCanvas(W, H);
+  // 따뜻한 배경 (위는 크림, 아래로 갈수록 살구빛)
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#FCF5EA');
+  bg.addColorStop(1, '#F5E2CB');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // 제목과 안내
+  ctx.fillStyle = ink;
+  ctx.font = font(800, 76);
+  ctx.fillText(PRAYER.title, m, 200);
+  ctx.font = font(500, 32);
+  ctx.fillStyle = soft;
+  drawWrapped(ctx, PRAYER.instruction, m, 268, W - m * 2 - 250, 48);
+
+  // 다시 불러오기용 QR (오른쪽 위, 작게)
+  const QRS = 208;
+  drawQr(ctx, encodeNames(names), W - m - QRS, 96, QRS);
+
+  // 이름
+  const top = headH;
+  ctx.strokeStyle = 'rgba(110, 91, 73, 0.22)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(m, top - 36);
+  ctx.lineTo(W - m, top - 36);
+  ctx.stroke();
+  ctx.font = font(700, nameSize);
+  ctx.fillStyle = ink;
   const colW = (W - m * 2) / cols;
   names.forEach((n, i) => {
     const col = Math.floor(i / rows);
     const row = i % rows;
     const x = m + col * colW;
-    const yy = top + row * lineH + size;
-    ctx.fillStyle = '#2F5BD3';
-    ctx.fillRect(x, yy - size * 0.42, 12, 12);
-    ctx.fillStyle = '#111A2E';
+    const yy = top + row * lineH + nameSize;
     let label = n;
-    while (ctx.measureText(label).width > colW - 48 && label.length > 1) label = label.slice(0, -1);
-    ctx.fillText(label === n ? n : label + '…', x + 32, yy);
+    while (ctx.measureText(label).width > colW - 24 && label.length > 1) label = label.slice(0, -1);
+    ctx.fillText(label === n ? n : label + '…', x, yy);
   });
 
-  ctx.fillStyle = '#4B556B';
-  ctx.font = font(500, 30);
-  ctx.fillText(`${VERSE_2PE_3_9.ref}  ·  LTC 초급 2026.11.03`, m, H - 100);
+  // 하단: 베드로후서 3:9
+  let y = H - verseH - 40;
+  ctx.beginPath();
+  ctx.moveTo(m, y);
+  ctx.lineTo(W - m, y);
+  ctx.stroke();
+  y += 70;
+  ctx.font = font(500, 32);
+  ctx.fillStyle = soft;
+  y = drawWrapped(ctx, VERSE_2PE_3_9.text, m, y, W - m * 2, 50);
+  ctx.font = font(700, 28);
+  ctx.fillStyle = accent;
+  ctx.fillText(VERSE_2PE_3_9.ref, m, y + 18);
+
   void openImageSheet(c, 'ltc-기도명단.png', '기도 명단 카드');
 });
+
+/** 흰 바탕 위에 QR을 그린다 (바깥 여백 포함). */
+function drawQr(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, size: number): void {
+  const qr = QRCode.create(text, { errorCorrectionLevel: text.length > 60 ? 'L' : 'M' });
+  const n = qr.modules.size;
+  const pad = 12;
+  ctx.fillStyle = '#FFFFFF';
+  if (typeof ctx.roundRect === 'function') {
+    ctx.beginPath();
+    ctx.roundRect(x, y, size, size, 14);
+    ctx.fill();
+  } else ctx.fillRect(x, y, size, size);
+  const cell = (size - pad * 2) / n;
+  ctx.fillStyle = '#2B2118';
+  for (let r = 0; r < n; r++)
+    for (let col = 0; col < n; col++)
+      if (qr.modules.get(r, col)) ctx.fillRect(x + pad + col * cell, y + pad + r * cell, Math.ceil(cell), Math.ceil(cell));
+}

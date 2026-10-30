@@ -2,7 +2,7 @@
 // 1) 외부 네트워크 요청 0건  2) /confess 흐름·초기화·저장 없음  3) 기도 명단 → 결단 카드 불러오기
 // 4) 카드 이미지 생성  5) 저장이 막힌 환경에서도 동작
 import { createRequire } from 'node:module';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 const { chromium } = createRequire(import.meta.url)('playwright');
 
 const BASE = process.env.BASE ?? 'http://localhost:4173/';
@@ -182,6 +182,7 @@ async function storageSnapshot(page) {
     await page.getByRole('button', { name: '추가', exact: true }).click();
   }
   ok('기도 명단 3명 추가', (await page.locator('.name-list li').count()) === 3);
+  ok('기도 명단 하단 문구', await page.getByText('이 카드는 폰에 저장돼요. 오늘 마지막 시간에 다시 엽니다. 같은 폰으로 열어야 다시 불러올 수 있어요.').isVisible());
   await page.reload();
   ok('새로고침 후 명단 유지', (await page.locator('.name-list li').count()) === 3);
   await page.getByRole('button', { name: '카드 이미지 저장' }).click();
@@ -190,6 +191,25 @@ async function storageSnapshot(page) {
   const size = await img.evaluate((i) => new Promise((r) => (i.complete ? r([i.naturalWidth, i.naturalHeight]) : (i.onload = () => r([i.naturalWidth, i.naturalHeight])))));
   ok('기도 명단 카드 이미지 1080×1350', size[0] === 1080 && size[1] === 1350, size.join('×'));
   await page.screenshot({ path: `${OUT}/prayer-sheet.png` });
+  // 카드 이미지를 파일로 받아 두었다가, 다른 브라우저에서 결단 카드에 올려 본다
+  const cardData = await img.evaluate((i) => {
+    const c = document.createElement('canvas');
+    c.width = i.naturalWidth;
+    c.height = i.naturalHeight;
+    c.getContext('2d').drawImage(i, 0, 0);
+    return c.toDataURL('image/png');
+  });
+  writeFileSync(`${OUT}/prayer-card.png`, Buffer.from(cardData.split(',')[1], 'base64'));
+  {
+    const other = await newContext();
+    const op = await other.newPage();
+    await op.goto(BASE + 'pledge/');
+    await op.getByRole('button', { name: '기도 명단에서 불러오기' }).click();
+    await op.locator('#card-file').setInputFiles(`${OUT}/prayer-card.png`);
+    await op.locator('.chip').first().waitFor({ timeout: 5000 });
+    ok('다른 브라우저: 카드 이미지를 올리면 이름 3명 되살림', (await op.locator('.chip').count()) === 3);
+    await other.close();
+  }
   await page.getByRole('button', { name: '닫기' }).click();
 
   await page.goto(BASE + 'pledge/');
