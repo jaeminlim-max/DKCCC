@@ -98,6 +98,25 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
+  // 페이지(HTML)는 인터넷이 되면 항상 최신을 먼저 받는다. 3초 안에 못 받으면 저장본을 보여 준다.
+  if (req.mode === 'navigate') {
+    e.respondWith((async () => {
+      try {
+        const res = await Promise.race([
+          fetch(req),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000)),
+        ]);
+        if (res && res.ok) (await caches.open(PRECACHE)).put(req, res.clone());
+        return res;
+      } catch {
+        const hit = await caches.match(req, { ignoreSearch: true, ignoreVary: true });
+        return hit || Response.error();
+      }
+    })());
+    return;
+  }
+
+  // 그 밖의 파일(이름에 해시가 붙어 바뀌지 않는 파일)은 저장본 먼저
   e.respondWith(
     caches.match(req, { ignoreSearch: true, ignoreVary: true }).then((hit) => hit || fetch(req)),
   );

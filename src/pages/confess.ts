@@ -35,7 +35,8 @@ function wipe(): void {
     c.width = 0;
     c.height = 0;
   });
-  document.querySelectorAll('.tear-layer, .dim-layer').forEach((n) => n.remove());
+  document.querySelectorAll('.tear-layer, .dim-layer, .veil').forEach((n) => n.remove());
+  veil = null;
   layer = null;
   pieces = [];
   app.replaceChildren();
@@ -48,16 +49,34 @@ function restart(): void {
   renderIntro();
 }
 
-// 떠날 때·가려질 때 비운다. 돌아오면 빈 종이에서 다시 시작한다.
+// 페이지를 떠나면(뒤로가기·새로고침·닫기) 바로 비운다.
 window.addEventListener('pagehide', wipe);
 window.addEventListener('pageshow', (e) => {
   if (e.persisted) restart();
 });
-document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') wipe();
-  else if (!app.firstChild) renderIntro();
-});
 document.addEventListener('freeze', wipe);
+
+// 화면이 가려지면(알림센터·제어센터·앱 전환) 가림막으로 덮는다.
+// 웹에서는 알림센터와 앱 전환을 구분할 수 없으므로, 60초 안에 돌아오면 이어서 쓰고
+// 그보다 오래 비우면 처음부터 다시 시작한다.
+const KEEP_MS = 60_000;
+let hiddenAt = 0;
+let veil: HTMLElement | null = null;
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') {
+    hiddenAt = Date.now();
+    if (!veil && app.querySelector('.paper, .pray')) {
+      veil = h('div', { class: 'veil', 'aria-hidden': 'true' }, h('p', { text: '돌아오면 이어서 쓸 수 있어요' }));
+      document.body.append(veil);
+    }
+    return;
+  }
+  const away = Date.now() - hiddenAt;
+  veil?.remove();
+  veil = null;
+  if (!app.firstChild) renderIntro();
+  else if (hiddenAt && away > KEEP_MS && !app.querySelector('.end')) restart();
+});
 
 function stepHead(mark: string, text: string): HTMLElement {
   return h('div', { class: 'step-head' }, h('span', { class: 'step-mark', 'aria-hidden': 'true', text: mark }), h('p', { class: 'step-text', text }));
@@ -440,19 +459,37 @@ function jitter(n: number): number {
   return (Math.random() * 2 - 1) * n;
 }
 
+const SEG = 56; // 세로 찢김선 마디 수 (많을수록 가장자리가 잘게 들쭉날쭉)
+
+function walk(from: number, n: number, step: number, lo: number, hi: number): number[] {
+  const out = [from];
+  let x = from;
+  for (let i = 1; i < n; i++) {
+    x += jitter(step) + (Math.random() < 0.12 ? jitter(step * 2.5) : 0);
+    x = Math.max(lo, Math.min(hi, x));
+    out.push(x);
+  }
+  return out;
+}
+
 function crackLine(): Crack {
-  const v: P[] = [];
-  for (let i = 0; i <= 12; i++) v.push([0.5 + jitter(0.04), i / 12]);
-  const cuts = [0.36, 0.68].map((y) => ({
-    y,
-    left: [0, 0.13, 0.26, 0.38].map((x) => [x, y + jitter(0.03)] as P),
-    right: [0.62, 0.75, 0.88, 1].map((x) => [x, y + jitter(0.03)] as P),
-  }));
+  const xs = walk(0.5 + jitter(0.03), SEG + 1, 0.012, 0.4, 0.6);
+  const v: P[] = xs.map((x, i) => [x, i / SEG]);
+  const cuts = [0.36, 0.68].map((y) => {
+    const ly = walk(y + jitter(0.02), 9, 0.01, y - 0.05, y + 0.05);
+    const ry = walk(y + jitter(0.02), 9, 0.01, y - 0.05, y + 0.05);
+    return {
+      y,
+      left: ly.map((yy, i) => [i * 0.05, yy] as P),
+      right: ry.map((yy, i) => [0.6 + i * 0.05, yy] as P),
+    };
+  });
   return { v, cuts };
 }
 
 function vx(c: Crack, y: number): number {
-  const i = Math.min(11, Math.floor(y * 12));
+  const n = c.v.length - 1;
+  const i = Math.min(n - 1, Math.floor(y * n));
   const [x0, y0] = c.v[i];
   const [x1, y1] = c.v[i + 1];
   return x0 + ((x1 - x0) * (y - y0)) / (y1 - y0);
@@ -493,7 +530,15 @@ function crackSvg(c: Crack): SVGSVGElement {
   s.setAttribute('preserveAspectRatio', 'none');
   s.setAttribute('aria-hidden', 'true');
   const pts = c.v.map(([x, y]) => `${x * 100},${y * 100}`).join(' ');
-  s.innerHTML = `<polyline points="${pts}" pathLength="1"/>`;
+  // 찢긴 틈(어두운 선) + 종이 속살(밝은 결) + 삐져나온 섬유 몇 가닥
+  let fibers = '';
+  for (let i = 3; i < c.v.length - 2; i += 3) {
+    const [x, y] = c.v[i];
+    const len = 0.6 + Math.random() * 1.4;
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    fibers += `<path class="fiber" d="M${x * 100} ${y * 100}l${dir * len} ${jitter(0.8)}"/>`;
+  }
+  s.innerHTML = `<polyline class="tear-core" points="${pts}" pathLength="1"/><polyline class="tear-gap" points="${pts}" pathLength="1"/><g class="fibers">${fibers}</g>`;
   return s;
 }
 
@@ -527,11 +572,20 @@ function makePiece(card: HTMLElement, rect: DOMRect, clip: string): HTMLElement 
   return piece;
 }
 
+// 두 조각은 찢김선 아래 끝을 축으로 V자로 벌어진다
+const halfEnd = (dir: number) => `translateX(${dir * 7}px) rotate(${dir * 5}deg)`;
+const tearOrigin = (c: Crack) => `${(c.v[c.v.length - 1][0] * 100).toFixed(1)}% 100%`;
+
 function splitInTwo(card: HTMLElement, c: Crack): void {
   const rect = card.getBoundingClientRect();
   layer = h('div', { class: 'tear-layer', 'aria-hidden': 'true' });
   document.body.append(layer);
+  const dark = card.classList.contains('is-dark');
   pieces = [0, 1].map((col) => makePiece(card, rect, toClip(piecePolygon(c, col as 0 | 1, -1, 2))));
+  pieces.forEach((p) => {
+    p.style.transformOrigin = tearOrigin(c);
+    p.classList.toggle('is-dark', dark);
+  });
   layer.append(...pieces);
   // 원본 카드는 자리만 남기고 비운다
   card.replaceChildren();
@@ -540,9 +594,9 @@ function splitInTwo(card: HTMLElement, c: Crack): void {
   const reduced = prefersReducedMotion();
   pieces.forEach((p, i) => {
     const dir = i === 0 ? -1 : 1;
-    p.animate([{ transform: 'none' }, { transform: `translateX(${dir * 14}px) rotate(${dir * 2.5}deg)` }], {
-      duration: reduced ? 1 : 320,
-      easing: 'cubic-bezier(.2,.8,.3,1)',
+    p.animate([{ transform: 'none' }, { transform: halfEnd(dir) }], {
+      duration: reduced ? 1 : 380,
+      easing: 'cubic-bezier(.3,.7,.2,1)',
       fill: 'forwards',
     });
   });
@@ -559,7 +613,9 @@ function shatter(c: Crack): void {
     for (const [top, bottom] of [[-1, 0], [0, 1], [1, 2]] as const) {
       const shard = makePiece(source, fullRect, toClip(piecePolygon(c, col, top, bottom)));
       const dir = col === 0 ? -1 : 1;
-      shard.style.transform = `translateX(${dir * 14}px) rotate(${dir * 2.5}deg)`;
+      shard.style.transformOrigin = tearOrigin(c);
+      shard.style.transform = halfEnd(dir);
+      shard.classList.toggle('is-dark', pieces[0].classList.contains('is-dark'));
       shards.push(shard);
     }
   }
@@ -571,7 +627,7 @@ function shatter(c: Crack): void {
   shards.forEach((sh, i) => {
     const dir = i < 3 ? -1 : 1;
     const row = i % 3;
-    const start = `translateX(${dir * 14}px) rotate(${dir * 2.5}deg)`;
+    const start = halfEnd(dir);
     const spread = `translate(${dir * (22 + row * 6)}px, ${(row - 1) * 10}px) rotate(${dir * (4 + row * 2)}deg)`;
     const rise = `translate(${dir * (30 + row * 8)}px, ${-40 - row * 12}px) rotate(${dir * (8 + row * 3)}deg) scale(0.92)`;
     sh.animate(
