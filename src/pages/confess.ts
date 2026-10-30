@@ -729,26 +729,28 @@ function verseBlock(v: { text: string; ref: string }): HTMLElement {
 }
 
 function trainSvg(): HTMLElement {
-  const wrap = h('figure', { class: 'train', 'aria-label': '기차 그림: 사실 다음에 믿음, 맨 뒤에 감정' });
+  const wrap = h('figure', { class: 'train', 'aria-label': '기차 그림: 맨 앞 기관차는 사실, 그 뒤 탄수차는 믿음, 맨 뒤 객차는 감정' });
   const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   s.setAttribute('viewBox', '0 0 330 92');
   s.setAttribute('aria-hidden', 'true');
   const cars = CONFESS.train;
-  const xs = [228, 122, 16]; // 오른쪽(앞)이 기관차
+  const xs = [16, 106, 214]; // 왼쪽(앞)이 기관차, 오른쪽 끝이 객차
+  const widths = [70, 86, 96];
   let inner = '<path class="rail" d="M4 78H326"/>';
   cars.forEach((c, i) => {
     const x = xs[i];
+    const w = widths[i];
     const engine = i === 0;
     inner += `<g class="${engine ? 'car engine' : 'car'}">`;
     inner += engine
-      ? `<path d="M${x} 24h56a10 10 0 0 1 10 10v30H${x}z"/><rect x="${x + 44}" y="10" width="12" height="14" rx="2"/>`
-      : `<rect x="${x}" y="28" width="86" height="36" rx="6"/>`;
-    inner += `<circle cx="${x + 18}" cy="70" r="7"/><circle cx="${x + (engine ? 50 : 68)}" cy="70" r="7"/>`;
-    inner += `<text x="${x + (engine ? 33 : 43)}" y="${engine ? 51 : 52}">${c.word}</text></g>`;
-    if (i < cars.length - 1) inner += `<path class="link" d="M${xs[i + 1] + 86} 52H${x}"/>`;
+      ? `<path d="M${x + w} 24H${x + 10}a10 10 0 0 0 -10 10v30H${x + w}z"/><rect x="${x + 10}" y="10" width="12" height="14" rx="2"/>`
+      : `<rect x="${x}" y="28" width="${w}" height="36" rx="6"/>`;
+    inner += `<circle cx="${x + 18}" cy="70" r="7"/><circle cx="${x + w - 18}" cy="70" r="7"/>`;
+    inner += `<text x="${x + w / 2}" y="${engine ? 51 : 52}">${c.word}</text></g>`;
+    if (i < cars.length - 1) inner += `<path class="link" d="M${x + w} 52H${xs[i + 1]}"/>`;
   });
   s.innerHTML = inner;
-  wrap.append(s, h('figcaption', { class: 'note', text: cars.map((c) => `${c.car} ${c.word}`).join(' → ') }));
+  wrap.append(s, h('figcaption', { class: 'train-caption', text: CONFESS.trainCaption }));
   return wrap;
 }
 
