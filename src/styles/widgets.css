@@ -265,3 +265,22 @@
 .submit-state:empty {
   display: none;
 }
+
+.upload-row {
+  width: 100%;
+  margin-top: 6px;
+}
+
+.upload-row .btn.upload {
+  width: 100%;
+  min-height: 48px;
+  font-size: 0.95rem;
+}
+
+.upload-row .note:empty {
+  display: none;
+}
+
+.upload-row .note {
+  margin-top: 8px;
+}
