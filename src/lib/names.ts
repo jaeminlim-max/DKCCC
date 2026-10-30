@@ -6,7 +6,6 @@ export function createNameList(opts: {
   label: string;
   placeholder?: string;
   addText?: string; // 버튼 글자 (기본 '추가')
-  max?: number; // 정하면 그 수를 넘을 때 앞의 이름을 밀어낸다 (1이면 한 명만)
   onChange: (names: string[]) => void;
 }): { root: HTMLElement; set: (names: string[]) => void; add: (name: string) => void; input: HTMLInputElement } {
   let names = [...opts.names];
@@ -33,7 +32,6 @@ export function createNameList(opts: {
     const name = raw.trim();
     if (!name) return;
     if (!names.includes(name)) names.push(name);
-    if (opts.max && names.length > opts.max) names = names.slice(-opts.max);
     render();
     opts.onChange(names);
   };
